@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aegis Protocol // Breach Mini-Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Splash title — first load only -->
+      <div id="splash" class="splash-overlay" role="dialog" aria-label="Aegis Protocol title">
+        <div class="splash-bg" aria-hidden="true">
+          <div class="splash-grid"></div>
+          <div class="splash-glow splash-glow-a"></div>
+          <div class="splash-glow splash-glow-b"></div>
+          <div class="splash-scan"></div>
+          <div class="splash-noise"></div>
+          <div class="splash-vignette"></div>
+        </div>
+        <div class="splash-content">
+          <div class="splash-emblem" aria-hidden="true">
+            <div class="sp-ring"></div>
+            <div class="sp-ring sp-ring-2"></div>
+            <div class="sp-ring sp-ring-3"></div>
+            <div class="sp-core">
+              <svg class="sp-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polygon points="32,6 56,20 56,44 32,58 8,44 8,20" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <polygon points="32,16 48,25 48,39 32,48 16,39 16,25" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.7"/>
+                <circle cx="32" cy="32" r="5" fill="currentColor" opacity="0.9"/>
+                <line x1="32" y1="10" x2="32" y2="22" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="32" y1="42" x2="32" y2="54" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="10" y1="32" x2="22" y2="32" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="42" y1="32" x2="54" y2="32" stroke="currentColor" stroke-width="1.2"/>
+              </svg>
+            </div>
+            <div class="sp-burst"></div>
+          </div>
+          <div class="splash-boot">
+            <span class="splash-boot-led"></span>
+            <span id="splash-boot-text">DECK BOOT · AUTH SEQUENCE</span>
+          </div>
+          <h1 class="splash-title">
+            <span class="splash-aegis glitch-title" data-text="AEGIS">AEGIS</span>
+            <span class="splash-protocol">PROTOCOL</span>
+          </h1>
+          <p class="splash-tagline">BREACH UPLINK · PROTO-CYBER TACTICAL</p>
+          <div class="splash-load" aria-hidden="true">
+            <div class="splash-load-track"><i id="splash-load-fill"></i></div>
+            <div class="splash-load-meta">
+              <span>LINK 0x2E</span>
+              <span id="splash-pct">00%</span>
+            </div>
+          </div>
+          <button type="button" id="splash-skip" class="splash-skip">
+            <span>// ENTER DECK</span>
+            <span class="splash-skip-key">CLICK / ANY KEY</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Briefing / cyberdeck start menu -->
+      <div id="briefing" class="overlay menu-overlay cyberdeck hidden">
+        <div class="menu-bg" aria-hidden="true">
+          <div class="menu-grid"></div>
+          <div class="menu-hex"></div>
+          <div class="menu-glow menu-glow-a"></div>
+          <div class="menu-glow menu-glow-b"></div>
+          <div class="menu-scan"></div>
+          <div class="menu-noise"></div>
+          <div class="menu-vignette"></div>
+        </div>
+
+        <div class="panel briefing-panel deck-shell">
+          <div class="deck-bezel" aria-hidden="true">
+            <span class="deck-corner tl"></span>
+            <span class="deck-corner tr"></span>
+            <span class="deck-corner bl"></span>
+            <span class="deck-corner br"></span>
+            <span class="deck-rail left"></span>
+            <span class="deck-rail right"></span>
+          </div>
+          <div class="deck-scanline" aria-hidden="true"></div>
+          <div class="deck-holo-edge" aria-hidden="true"></div>
+
+          <div class="deck-chrome">
+            <div class="deck-chrome-left">
+              <span class="deck-led"></span>
+              <span class="deck-unit">DECK // AEGIS-7</span>
+              <span class="deck-sep">│</span>
+              <span class="deck-boot">boot 0x2E</span>
+            </div>
+            <div class="deck-chrome-right">
+              <span class="deck-hex">0xAE91</span>
+              <span class="deck-link">LINK STABLE</span>
+            </div>
+          </div>
+
+          <header class="menu-hero menu-hero-compact">
+            <div class="menu-status">
+              <span class="status-dot"></span>
+              <span class="panel-tag glitch-text" data-text="UPLINK READY · PROTO-CYBER MINI-GAME">UPLINK READY · PROTO-CYBER MINI-GAME</span>
+            </div>
+            <h1 class="menu-title">
+              <span class="title-mark glitch-title" data-text="AEGIS">AEGIS</span>
+              <span class="title-sub">PROTOCOL</span>
+            </h1>
+          </header>
+
+          <nav id="menu-tabs" class="menu-tabs" role="tablist" aria-label="Cyberdeck sections">
+            <button type="button" class="menu-tab active" role="tab" data-tab="ops" aria-selected="true" aria-controls="tab-ops" id="tab-btn-ops">
+              <span class="tab-key">01</span>
+              <span class="tab-label">OPS</span>
+              <span class="tab-sub">mode · node · ice</span>
+            </button>
+            <button type="button" class="menu-tab" role="tab" data-tab="squad" aria-selected="false" aria-controls="tab-squad" id="tab-btn-squad">
+              <span class="tab-key">02</span>
+              <span class="tab-label">SQUAD</span>
+              <span class="tab-sub">probes · loadout</span>
+            </button>
+            <button type="button" class="menu-tab" role="tab" data-tab="settings" aria-selected="false" aria-controls="tab-settings" id="tab-btn-settings">
+              <span class="tab-key">03</span>
+              <span class="tab-label">SETTINGS</span>
+              <span class="tab-sub">audio · debug</span>
+            </button>
+          </nav>
+
+          <div class="menu-tab-panels">
+            <!-- ── OPS ─────────────────────────────────── -->
+            <div id="tab-ops" class="menu-tab-panel active" role="tabpanel" aria-labelledby="tab-btn-ops">
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">00</span>
+                  <span class="section-title">PLAY MODE</span>
+                </div>
+                <div id="mode-row" class="difficulty-row mode-row" role="radiogroup" aria-label="Play mode">
+                  <button type="button" class="diff-btn mode-btn active" data-mode="campaign" aria-pressed="true">
+                    <span class="mode-key">[A]</span>
+                    <span class="diff-name">CAMPAIGN</span>
+                    <span class="diff-desc">3 ops · story arc</span>
+                  </button>
+                  <button type="button" class="diff-btn mode-btn" data-mode="skirmish" aria-pressed="false">
+                    <span class="mode-key">[B]</span>
+                    <span class="diff-name">SKIRMISH</span>
+                    <span class="diff-desc">Free map pick</span>
+                  </button>
+                </div>
+                <div id="campaign-panel" class="campaign-panel holo-panel">
+                  <div id="campaign-stepper" class="campaign-stepper" aria-hidden="true">
+                    <span class="camp-step active" data-step="0">1</span>
+                    <span class="camp-line"></span>
+                    <span class="camp-step" data-step="1">2</span>
+                    <span class="camp-line"></span>
+                    <span class="camp-step" data-step="2">3</span>
+                  </div>
+                  <div class="campaign-op-meta">
+                    <div id="campaign-op-code" class="campaign-op-code">OP-01 PIN PAD</div>
+                    <div id="campaign-op-title" class="campaign-op-title">Soft insert</div>
+                  </div>
+                  <p id="campaign-op-blurb" class="difficulty-blurb">
+                    Soft insert on a test die. Prove the kit — seize the north port or wipe scrapers.
+                  </p>
+                  <p id="campaign-complete-note" class="campaign-complete-note hidden">
+                    Campaign complete. Start a new campaign (keeps probe XP) or switch to Skirmish.
+                  </p>
+                </div>
+                <div class="ops-campaign-actions">
+                  <button type="button" id="btn-reset-campaign" class="btn btn-ghost">
+                    RESET CAMPAIGN
+                  </button>
+                  <p class="difficulty-blurb ops-action-note">
+                    Always available — restarts at OP-01, clears Vesper path. Probe XP is kept.
+                  </p>
+                </div>
+              </section>
+
+              <section class="menu-section deck-module" id="map-section">
+                <div class="section-head">
+                  <span class="section-num">01</span>
+                  <span id="map-section-title" class="section-title">TARGET NODE</span>
+                </div>
+                <div id="map-row" class="difficulty-row map-row" role="radiogroup" aria-label="Map">
+                  <button type="button" class="diff-btn map-btn" data-map="training" aria-pressed="false">
+                    <span class="diff-name">PIN PAD</span>
+                    <span class="diff-desc">Simple · 2 pods</span>
+                  </button>
+                  <button type="button" class="diff-btn map-btn active" data-map="vesper" aria-pressed="true">
+                    <span class="diff-name">VESPER</span>
+                    <span class="diff-desc">Standard · 3 pods</span>
+                  </button>
+                  <button type="button" class="diff-btn map-btn" data-map="kernel" aria-pressed="false">
+                    <span class="diff-name">KERNEL</span>
+                    <span class="diff-desc">Complex · 5 pods</span>
+                  </button>
+                </div>
+                <div id="campaign-map-lock" class="campaign-map-lock hidden">
+                  <div class="lock-chip">
+                    <span class="lock-label">LOCKED NODE</span>
+                    <span id="campaign-lock-map" class="lock-map">PIN PAD</span>
+                  </div>
+                </div>
+                <p id="map-blurb" class="difficulty-blurb">
+                  Contested corporate die — courtyard, office, mech bay. Port: link.sys + 2 holds.
+                </p>
+              </section>
+
+              <section class="menu-section deck-module" id="mission-type-section">
+                <div class="section-head">
+                  <span class="section-num">02</span>
+                  <span class="section-title">OBJECTIVE</span>
+                </div>
+                <div id="mission-type-row" class="difficulty-row mode-row" role="radiogroup" aria-label="Mission type">
+                  <button type="button" class="diff-btn mtype-btn active" data-mission-type="standard" aria-pressed="true">
+                    <span class="diff-name">STANDARD</span>
+                    <span class="diff-desc">Port or wipe · no timer</span>
+                  </button>
+                  <button type="button" class="diff-btn mtype-btn" data-mission-type="deadline" aria-pressed="false">
+                    <span class="diff-name">DEADLINE</span>
+                    <span class="diff-desc">ICE wake timer · hurry</span>
+                  </button>
+                </div>
+                <p id="mission-type-blurb" class="difficulty-blurb">
+                  Classic breach — secure the north data port or kill every hostile process.
+                </p>
+              </section>
+
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">03</span>
+                  <span class="section-title">ICE HARDNESS</span>
+                </div>
+                <div id="difficulty-row" class="difficulty-row" role="radiogroup" aria-label="Difficulty">
+                  <button type="button" class="diff-btn" data-difficulty="easy" aria-pressed="false">
+                    <span class="diff-name">SANDBOX</span>
+                    <span class="diff-desc">Legacy wardens · soft ACC</span>
+                  </button>
+                  <button type="button" class="diff-btn active" data-difficulty="normal" aria-pressed="true">
+                    <span class="diff-name">LIVE NET</span>
+                    <span class="diff-desc">Corp ICE · cascade.sys</span>
+                  </button>
+                  <button type="button" class="diff-btn" data-difficulty="hard" aria-pressed="false">
+                    <span class="diff-name">BLACK ICE</span>
+                    <span class="diff-desc">Hard kernel · flanks</span>
+                  </button>
+                </div>
+                <p id="difficulty-blurb" class="difficulty-blurb">
+                  Corporate ICE — cover, cascade.sys, standard ACC
+                </p>
+              </section>
+
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">04</span>
+                  <span class="section-title">MISSION BRIEF</span>
+                </div>
+                <ul class="objectives menu-objectives">
+                  <li><span class="obj-icon win">◆</span><span><strong>WIN</strong> — <strong>link.sys</strong> on north pylon + hold through hostile cycles, or wipe all hostiles</span></li>
+                  <li><span class="obj-icon lose">◆</span><span><strong>LOSE</strong> — entire probe team integrity zeroed (or ICE wake timer)</span></li>
+                  <li><span class="obj-icon">◉</span><span>Port is not a free touch — leave or crash severs the channel</span></li>
+                  <li><span class="obj-icon">◉</span><span>Cover = components · flank · sleep pods wake on scan · loot · XP</span></li>
+                </ul>
+              </section>
+            </div>
+
+            <!-- ── SQUAD ───────────────────────────────── -->
+            <div id="tab-squad" class="menu-tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-squad" hidden>
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">00</span>
+                  <span class="section-title">PROBE TEAM</span>
+                </div>
+                <p id="lobby-wound-strip" class="lobby-wound-strip hidden"></p>
+                <div class="class-row">
+                  <div class="class-chip breacher" data-tip="INTRUDER — close-range scatter.payload, strip.sys, cascade.sys. First through the pins." data-tip-pos="below">
+                    <span class="chip-role">INTRUDER</span>
+                    <span class="chip-tag">CLOSE</span>
+                  </div>
+                  <div class="class-chip marksman" data-tip="POINTER — long_read.probe, high ACC at range, sandbox.sys. Marks targets from far copper." data-tip-pos="below">
+                    <span class="chip-role">POINTER</span>
+                    <span class="chip-tag">RANGE</span>
+                  </div>
+                  <div class="class-chip support" data-tip="SYSOP — noise.sys obfuscation and patch.sys restores. Keeps the team linked." data-tip-pos="below">
+                    <span class="chip-role">SYSOP</span>
+                    <span class="chip-tag">SUPPORT</span>
+                  </div>
+                  <div class="class-chip heavy" data-tip="FLOODER — flood.array, throttle.sys, cascade.sys. Armor and area pressure." data-tip-pos="below">
+                    <span class="chip-role">FLOODER</span>
+                    <span class="chip-tag">PRESSURE</span>
+                  </div>
+                </div>
+                <div class="squad-actions">
+                  <button type="button" id="btn-reset-squad" class="btn btn-ghost btn-danger-ghost">
+                    RESET SQUAD
+                  </button>
+                  <p class="difficulty-blurb ops-action-note">
+                    Wipe all privilege XP and wound flags. Probes return to L1 with starter abilities only. Loadout CRED is kept.
+                  </p>
+                </div>
+              </section>
+
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">01</span>
+                  <span class="section-title">LOADOUT BAY</span>
+                </div>
+                <div id="loadout-shop" class="loadout-shop holo-panel">
+                  <div class="loadout-head">
+                    <span class="loadout-title">SQUAD GEAR</span>
+                    <span id="loadout-cred" class="loadout-cred">0 CRED</span>
+                  </div>
+                  <p class="loadout-blurb">Spend CRED (earned on debrief) on squad-wide gear. Applies next jack-in.</p>
+                  <div id="loadout-items" class="loadout-items">
+                    <button type="button" class="loadout-item" data-upgrade="inject">
+                      <span class="lo-name">inject.kit</span>
+                      <span class="lo-tier" data-tier-for="inject">0/2</span>
+                      <span class="lo-desc">+1 payload dmg / tier</span>
+                      <span class="lo-cost" data-cost-for="inject">80</span>
+                    </button>
+                    <button type="button" class="loadout-item" data-upgrade="armor">
+                      <span class="lo-name">armor.chip</span>
+                      <span class="lo-tier" data-tier-for="armor">0/2</span>
+                      <span class="lo-desc">+1 SHD / tier</span>
+                      <span class="lo-cost" data-cost-for="armor">90</span>
+                    </button>
+                    <button type="button" class="loadout-item" data-upgrade="cycle">
+                      <span class="lo-name">cycle.cell</span>
+                      <span class="lo-tier" data-tier-for="cycle">0/1</span>
+                      <span class="lo-desc">+1 max CYC deploy</span>
+                      <span class="lo-cost" data-cost-for="cycle">120</span>
+                    </button>
+                    <button type="button" class="loadout-item lo-med" data-upgrade="medkit">
+                      <span class="lo-name">patch.bay</span>
+                      <span class="lo-tier">ONCE</span>
+                      <span class="lo-desc">Clear all wounds</span>
+                      <span class="lo-cost">70</span>
+                    </button>
+                  </div>
+                  <p id="loadout-toast" class="loadout-toast hidden"></p>
+                </div>
+              </section>
+            </div>
+
+            <!-- ── SETTINGS ────────────────────────────── -->
+            <div id="tab-settings" class="menu-tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-settings" hidden>
+              <section class="menu-section deck-module" id="music-section">
+                <div class="section-head">
+                  <span class="section-num">00</span>
+                  <span class="section-title">AMBIENT FEED</span>
+                </div>
+                <div class="music-panel holo-panel">
+                  <label class="debug-toggle music-toggle" data-tip="Loop cyber-lofi ambient under menu and breach. SFX still play when muted." data-tip-pos="below">
+                    <input type="checkbox" id="music-enabled" checked />
+                    <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-copy">
+                      <span class="toggle-title">BACKGROUND MUSIC</span>
+                      <span class="toggle-desc" id="music-status">NEON RAIN · on</span>
+                    </span>
+                  </label>
+                  <div id="music-track-row" class="difficulty-row music-track-row" role="radiogroup" aria-label="Music track">
+                    <button type="button" class="diff-btn music-btn active" data-music="neon-rain" aria-pressed="true">
+                      <span class="diff-name">NEON RAIN</span>
+                      <span class="diff-desc">Pad · hiss</span>
+                    </button>
+                    <button type="button" class="diff-btn music-btn" data-music="ice-hum" aria-pressed="false">
+                      <span class="diff-name">ICE HUM</span>
+                      <span class="diff-desc">Cold drone</span>
+                    </button>
+                    <button type="button" class="diff-btn music-btn" data-music="copper-dusk" aria-pressed="false">
+                      <span class="diff-name">COPPER DUSK</span>
+                      <span class="diff-desc">Warm keys</span>
+                    </button>
+                    <button type="button" class="diff-btn music-btn" data-music="custom" aria-pressed="false">
+                      <span class="diff-name">LOCAL FILE</span>
+                      <span class="diff-desc">mp3 / wav</span>
+                    </button>
+                  </div>
+                  <p id="music-blurb" class="difficulty-blurb">Soft pad · vinyl hiss · midnight breach</p>
+                  <div class="music-volume-row">
+                    <label class="music-vol-label" for="music-volume">VOL</label>
+                    <input type="range" id="music-volume" class="music-volume" min="0" max="100" value="32" />
+                    <span id="music-vol-pct" class="music-vol-pct">32%</span>
+                  </div>
+                  <div class="music-file-row">
+                    <input type="file" id="music-file" class="music-file-input" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac" />
+                    <button type="button" id="music-file-btn" class="btn btn-ghost music-file-btn">LOAD AUDIO…</button>
+                    <span id="music-file-name" class="music-file-name">No file loaded</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="menu-section deck-module">
+                <div class="section-head">
+                  <span class="section-num">01</span>
+                  <span class="section-title">DEBUG / CHEATS</span>
+                </div>
+                <label class="debug-toggle" data-tip="When ON, cheat icons appear during the breach (fog, god mode, free CYC, etc)." data-tip-pos="below">
+                  <input type="checkbox" id="debug-mode-toggle" />
+                  <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                  <span class="toggle-copy">
+                    <span class="toggle-title">DEBUG MODE</span>
+                    <span class="toggle-desc">Show test cheats during round</span>
+                  </span>
+                </label>
+                <p class="difficulty-blurb settings-note">
+                  Cheats are for testing only — fog reveal, free CYC, god mode, force win, and XP tools appear on the HUD when enabled.
+                </p>
+              </section>
+            </div>
+          </div>
+
+          <div class="menu-footer deck-footer">
+            <div class="menu-footer-meta">
+              <span class="footer-chip" id="menu-deploy-summary">CAMPAIGN · VESPER · LIVE NET</span>
+            </div>
+            <div class="menu-actions">
+              <button type="button" id="btn-new-campaign" class="btn btn-ghost">RESET CAMPAIGN</button>
+              <button id="btn-deploy" class="btn primary btn-jack">
+                <span class="btn-jack-glow" aria-hidden="true"></span>
+                <span class="btn-jack-label">JACK IN</span>
+                <span class="btn-jack-sub">RUN BREACH →</span>
+              </button>
+            </div>
+          </div>
+
+          <p class="hint menu-hint terminal-hint">
+            <span class="term-prompt">//</span>
+            LMB select / path · inject · R end cycle · 1–5 executables · Q/E rotate · WASD pan
+          </p>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" class="hud hidden">
+        <header class="hud-top">
+          <div class="brand">
+            <span class="brand-mark">AEGIS</span>
+            <span class="brand-sub">BREACH UPLINK · MINI-GAME</span>
+          </div>
+          <div class="hud-top-center">
+            <div id="turn-banner" class="turn-banner">YOUR CYCLE</div>
+            <div id="objective-strip" class="objective-strip">HOSTILES REMAINING: —</div>
+          </div>
+          <button
+            type="button"
+            id="btn-music-toggle"
+            class="music-hud-btn"
+            aria-pressed="true"
+            title="Toggle ambient music"
+            data-tip="Ambient music on/off&#10;Change track/volume in the cyberdeck lobby."
+            data-tip-pos="below"
+          >
+            <span class="music-hud-icon" aria-hidden="true">♪</span>
+            <span class="music-hud-label">BGM</span>
+          </button>
+        </header>
+
+        <div id="hit-chance" class="hit-chance hidden">
+          <div class="hit-card">
+            <div class="hit-target" id="hit-target">WARDEN-01</div>
+            <div class="hit-pct" id="hit-pct" data-tip="Chance this inject.bin connects after cover, range, and ACC.">72%</div>
+            <div class="hit-label">INJECT CHANCE</div>
+            <div class="hit-int-row" data-tip="Target integrity (INT) — their hit points remaining.">
+              <span class="hit-int-label">INT <span class="hit-int-sub">integrity</span></span>
+              <div class="hit-int-bar"><div id="hit-int-fill" class="hit-int-fill"></div></div>
+              <span id="hit-int-text" class="hit-int-text">5/5</span>
+            </div>
+            <div class="hit-meta" id="hit-meta">HIT · FLANK</div>
+            <div class="hit-kill" id="hit-kill"></div>
+          </div>
+        </div>
+        <div id="screen-fx" class="screen-fx" aria-hidden="true"></div>
+        <div id="scanlines" class="scanlines" aria-hidden="true"></div>
+
+        <div id="float-damage" class="float-layer"></div>
+
+        <aside id="unit-panel" class="unit-panel hidden">
+          <div class="unit-name-row">
+            <div class="unit-name" id="unit-name">—</div>
+            <div class="unit-level" id="unit-level" data-tip-pos="right" data-tip="Privilege level&#10;Rises with XP. Unlocks stats and new executables.">L1</div>
+          </div>
+          <div class="unit-class" id="unit-class">—</div>
+          <div class="stat-row">
+            <div class="stat" data-tip-pos="right" data-tip="INT — Integrity&#10;Process hit points. Reaches 0 → probe crashes.">
+              <label>INT</label>
+              <span class="stat-meaning">integrity</span>
+              <span id="unit-hp">—</span>
+            </div>
+            <div class="stat" data-tip-pos="right" data-tip="CYC — Cycles&#10;Action points this turn. Moves and executables spend CYC.">
+              <label>CYC</label>
+              <span class="stat-meaning">cycles</span>
+              <span id="unit-ap">—</span>
+            </div>
+            <div class="stat" data-tip-pos="right" data-tip="ACC — Accuracy&#10;Base chance to connect injects before cover and range.">
+              <label>ACC</label>
+              <span class="stat-meaning">accuracy</span>
+              <span id="unit-aim">—</span>
+            </div>
+            <div class="stat" data-tip-pos="right" data-tip="SHD — Shield&#10;Armor. Subtracts from each hit before integrity drops.">
+              <label>SHD</label>
+              <span class="stat-meaning">shield</span>
+              <span id="unit-armor">—</span>
+            </div>
+          </div>
+          <div class="hp-bar" data-tip-pos="right" data-tip="Integrity bar — current INT relative to max."><div id="hp-fill" class="hp-fill"></div></div>
+          <div class="xp-row" data-tip-pos="right" data-tip="XP — Privilege progress&#10;Kills and mission clears bank XP. Fills toward next level.">
+            <span class="xp-label">XP</span>
+            <span class="stat-meaning xp-meaning">privilege</span>
+            <div class="xp-bar"><div id="xp-fill" class="xp-fill"></div></div>
+            <span id="xp-text" class="xp-text">0/80</span>
+          </div>
+        </aside>
+
+        <div id="squad-bar" class="squad-bar"></div>
+
+        <!-- Debug cheats — only when start-menu DEBUG MODE is on -->
+        <div id="debug-bar" class="debug-bar hidden" role="toolbar" aria-label="Debug cheats" hidden>
+          <span class="debug-label" title="Test cheats">DBG</span>
+          <button type="button" class="debug-btn" data-debug="fog" data-tip-pos="below" data-tip="Clear fog of war&#10;Reveal entire die permanently this run." aria-label="Clear fog">
+            <span class="debug-icon">◉</span>
+            <span class="debug-name">FOG</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="freeCyc" data-tip-pos="below" data-tip="Free CYC&#10;Actions cost 0 cycles; ignore cooldowns." aria-label="Free CYC">
+            <span class="debug-icon">⚡</span>
+            <span class="debug-name">CYC</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="god" data-tip-pos="below" data-tip="God mode&#10;Player probes take no damage." aria-label="God mode">
+            <span class="debug-icon">◆</span>
+            <span class="debug-name">GOD</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="hit" data-tip-pos="below" data-tip="Always hit&#10;Player injects always connect (99%)." aria-label="Always hit">
+            <span class="debug-icon">⊕</span>
+            <span class="debug-name">HIT</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="heal" data-tip-pos="below" data-tip="Restore team&#10;Full INT, CYC, clear suppress/cooldowns." aria-label="Heal team">
+            <span class="debug-icon">+</span>
+            <span class="debug-name">HEAL</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="refill" data-tip-pos="below" data-tip="Refill CYC&#10;Restore all probe cycle points." aria-label="Refill CYC">
+            <span class="debug-icon">↻</span>
+            <span class="debug-name">AP</span>
+          </button>
+          <button type="button" class="debug-btn danger" data-debug="kill" data-tip-pos="below" data-tip="Wipe hostiles&#10;Kill every enemy process (victory if none left)." aria-label="Kill hostiles">
+            <span class="debug-icon">✕</span>
+            <span class="debug-name">KILL</span>
+          </button>
+          <button type="button" class="debug-btn danger" data-debug="port" data-tip-pos="below" data-tip="Win via data port&#10;Teleport selected/first probe to the north port." aria-label="Win data port">
+            <span class="debug-icon">⌂</span>
+            <span class="debug-name">PORT</span>
+          </button>
+          <button type="button" class="debug-btn" data-debug="xp" data-tip-pos="below" data-tip="Grant XP&#10;+80 XP to selected (or first) probe." aria-label="Grant XP">
+            <span class="debug-icon">★</span>
+            <span class="debug-name">XP</span>
+          </button>
+          <button type="button" class="debug-btn danger" data-debug="resetXp" data-tip-pos="below" data-tip="Reset roster XP&#10;Wipe saved progression for all probes." aria-label="Reset roster">
+            <span class="debug-icon">↺</span>
+            <span class="debug-name">RST</span>
+          </button>
+        </div>
+
+        <footer class="hud-bottom">
+          <div id="ability-bar" class="ability-bar"></div>
+          <button id="btn-end-turn" class="btn end-turn">END CYCLE</button>
+        </footer>
+
+        <div id="toast" class="toast hidden"></div>
+      </div>
+
+      <!-- Result / campaign finale -->
+      <div id="result" class="overlay menu-overlay hidden">
+        <div class="menu-bg" aria-hidden="true">
+          <div class="menu-grid"></div>
+          <div class="menu-glow menu-glow-a"></div>
+          <div class="menu-glow menu-glow-b"></div>
+          <div class="menu-scan"></div>
+          <div class="menu-vignette"></div>
+        </div>
+        <div class="panel result-panel deck-shell">
+          <div class="deck-bezel" aria-hidden="true">
+            <span class="deck-corner tl"></span>
+            <span class="deck-corner tr"></span>
+            <span class="deck-corner bl"></span>
+            <span class="deck-corner br"></span>
+          </div>
+          <div class="deck-scanline" aria-hidden="true"></div>
+
+          <div id="result-standard">
+            <div id="result-tag" class="panel-tag">NODE STATUS</div>
+            <h1 id="result-title">VICTORY</h1>
+            <p id="result-body" class="lede"></p>
+
+            <!-- Post-op debrief (every mission) -->
+            <div id="debrief-panel" class="debrief-panel hidden">
+              <div class="debrief-head">
+                <div id="debrief-grade" class="debrief-grade grade-a">A</div>
+                <div class="debrief-head-copy">
+                  <div class="debrief-label">OP DEBRIEF</div>
+                  <div class="debrief-sub">breach telemetry · privilege delta</div>
+                </div>
+              </div>
+              <div class="debrief-stats">
+                <div class="debrief-stat">
+                  <span class="ds-label">GRADE</span>
+                  <span class="ds-hint">performance</span>
+                </div>
+                <div class="debrief-stat">
+                  <span class="ds-label">CYCLES</span>
+                  <span id="debrief-turns" class="ds-value">—</span>
+                </div>
+                <div class="debrief-stat">
+                  <span class="ds-label">KILLS</span>
+                  <span id="debrief-kills" class="ds-value">—</span>
+                </div>
+                <div class="debrief-stat">
+                  <span class="ds-label">LIVE</span>
+                  <span id="debrief-alive" class="ds-value">—</span>
+                </div>
+                <div class="debrief-stat">
+                  <span class="ds-label">XP</span>
+                  <span id="debrief-xp" class="ds-value">—</span>
+                </div>
+                <div class="debrief-stat wide">
+                  <span class="ds-label">VECTOR</span>
+                  <span id="debrief-win" class="ds-value sm">—</span>
+                </div>
+              </div>
+              <div class="debrief-roster-wrap">
+                <div class="debrief-roster-head">SQUAD STATUS</div>
+                <div id="debrief-roster" class="debrief-roster"></div>
+              </div>
+              <p id="debrief-wounds" class="debrief-wounds"></p>
+            </div>
+          </div>
+
+          <!-- Campaign complete — full stack clear -->
+          <div id="campaign-victory" class="campaign-victory hidden">
+            <div class="cv-graphic" aria-hidden="true">
+              <div class="cv-ring"></div>
+              <div class="cv-ring cv-ring-2"></div>
+              <div class="cv-core">
+                <span class="cv-glyph">◆</span>
+              </div>
+              <div class="cv-burst"></div>
+            </div>
+            <div class="cv-status">
+              <span class="status-dot"></span>
+              <span class="panel-tag glitch-text" data-text="CAMPAIGN COMPLETE // KERNEL BREACHED">CAMPAIGN COMPLETE // KERNEL BREACHED</span>
+            </div>
+            <h1 class="cv-title glitch-title" data-text="STACK CLEAR">STACK CLEAR</h1>
+            <p class="cv-sub">All three operations cleared. Probe team privilege retained across the die.</p>
+
+            <div class="cv-stats-grid">
+              <div class="cv-stat">
+                <span class="cv-stat-label">OPS CLEARED</span>
+                <span id="cv-ops" class="cv-stat-value">3/3</span>
+              </div>
+              <div class="cv-stat highlight">
+                <span class="cv-stat-label">TOTAL XP</span>
+                <span id="cv-total-xp" class="cv-stat-value">0</span>
+              </div>
+              <div class="cv-stat">
+                <span class="cv-stat-label">THIS OP XP</span>
+                <span id="cv-mission-xp" class="cv-stat-value">0</span>
+              </div>
+              <div class="cv-stat">
+                <span class="cv-stat-label">CYCLES</span>
+                <span id="cv-turns" class="cv-stat-value">—</span>
+              </div>
+              <div class="cv-stat">
+                <span class="cv-stat-label">HOSTILES KILLED</span>
+                <span id="cv-kills" class="cv-stat-value">—</span>
+              </div>
+              <div class="cv-stat">
+                <span class="cv-stat-label">PROBES LIVE</span>
+                <span id="cv-alive" class="cv-stat-value">—</span>
+              </div>
+              <div class="cv-stat wide">
+                <span class="cv-stat-label">WIN VECTOR</span>
+                <span id="cv-win" class="cv-stat-value sm">—</span>
+              </div>
+            </div>
+
+            <div class="cv-roster">
+              <div class="cv-roster-head">PROBE PRIVILEGE</div>
+              <div id="cv-roster-rows" class="cv-roster-rows"></div>
+            </div>
+
+            <p id="cv-body" class="cv-body lede"></p>
+          </div>
+
+          <div class="result-actions">
+            <button type="button" id="btn-continue" class="btn primary hidden">NEXT OP</button>
+            <button id="btn-restart" class="btn primary">RE-JACK / LOBBY</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "aegis-protocol",
+  "private": false,
+  "version": "0.9.0",
+  "description": "Aegis Protocol — proto-cyberpunk turn-based tactics mini-game (Three.js + TypeScript). Public beta 0.9.",
+  "type": "module",
+  "license": "MIT",
+  "author": "UnderdarkEcho",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UnderdarkEcho/aegisProtocol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/UnderdarkEcho/aegisProtocol/issues"
+  },
+  "homepage": "https://github.com/UnderdarkEcho/aegisProtocol#readme",
+  "keywords": [
+    "game",
+    "tactics",
+    "turn-based",
+    "threejs",
+    "typescript",
+    "cyberpunk",
+    "xcom-like",
+    "open-source"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.1",
+    "jsdom": "^30.0.0",
+    "playwright": "^1.62.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
