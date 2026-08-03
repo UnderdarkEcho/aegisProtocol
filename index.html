@@ -99,6 +99,7 @@
               <span class="deck-boot">boot 0x2E</span>
             </div>
             <div class="deck-chrome-right">
+              <span class="deck-ver">v0.9.3-β</span>
               <span class="deck-hex">0xAE91</span>
               <span class="deck-link">LINK STABLE</span>
             </div>
@@ -119,12 +120,12 @@
             <button type="button" class="menu-tab active" role="tab" data-tab="ops" aria-selected="true" aria-controls="tab-ops" id="tab-btn-ops">
               <span class="tab-key">01</span>
               <span class="tab-label">OPS</span>
-              <span class="tab-sub">mode · node · ice</span>
+              <span class="tab-sub">arc · node · ice · records</span>
             </button>
             <button type="button" class="menu-tab" role="tab" data-tab="squad" aria-selected="false" aria-controls="tab-squad" id="tab-btn-squad">
               <span class="tab-key">02</span>
               <span class="tab-label">SQUAD</span>
-              <span class="tab-sub">probes · loadout</span>
+              <span class="tab-sub">probes · loadout · reset</span>
             </button>
             <button type="button" class="menu-tab" role="tab" data-tab="settings" aria-selected="false" aria-controls="tab-settings" id="tab-btn-settings">
               <span class="tab-key">03</span>
@@ -293,9 +294,15 @@
                       <span class="diff-desc">Stack clear bests</span>
                     </button>
                   </div>
+                  <div class="records-list-head">
+                    <span>#</span><span>SCORE</span><span>RUN</span>
+                  </div>
                   <ol id="records-list" class="records-list"></ol>
                   <p id="records-empty" class="difficulty-blurb records-empty">No breaches logged. Jack in and clear a node.</p>
-                  <button type="button" id="btn-clear-records" class="btn btn-ghost btn-danger-ghost records-clear">CLEAR RECORDS</button>
+                  <div class="records-foot">
+                    <span class="records-note">Local only · this deck</span>
+                    <button type="button" id="btn-clear-records" class="btn btn-ghost btn-danger-ghost records-clear">CLEAR</button>
+                  </div>
                 </div>
               </section>
             </div>
@@ -446,9 +453,10 @@
             </div>
           </div>
 
-          <div class="menu-footer deck-footer">
+          <div class="menu-footer deck-footer sticky-footer">
             <div class="menu-footer-meta">
               <span class="footer-chip" id="menu-deploy-summary">CAMPAIGN · VESPER · LIVE NET</span>
+              <span class="footer-ver">PUBLIC BETA</span>
             </div>
             <div class="menu-actions">
               <button type="button" id="btn-new-campaign" class="btn btn-ghost">RESET CAMPAIGN</button>
@@ -462,7 +470,7 @@
 
           <p class="hint menu-hint terminal-hint">
             <span class="term-prompt">//</span>
-            LMB select / path · inject · R end cycle · 1–5 executables · Q/E rotate · WASD pan
+            LMB select / path · inject · R end cycle · 1–7 executables · Q/E rotate · WASD pan · ♪ BGM
           </p>
         </div>
       </div>
@@ -640,6 +648,10 @@
                   <span class="ds-label">GRADE</span>
                   <span class="ds-hint">performance</span>
                 </div>
+                <div class="debrief-stat highlight">
+                  <span class="ds-label">SCORE</span>
+                  <span id="debrief-score" class="ds-value">—</span>
+                </div>
                 <div class="debrief-stat">
                   <span class="ds-label">CYCLES</span>
                   <span id="debrief-turns" class="ds-value">—</span>
@@ -661,6 +673,7 @@
                   <span id="debrief-win" class="ds-value sm">—</span>
                 </div>
               </div>
+              <p id="debrief-score-note" class="debrief-score-note hidden"></p>
               <div class="debrief-roster-wrap">
                 <div class="debrief-roster-head">SQUAD STATUS</div>
                 <div id="debrief-roster" class="debrief-roster"></div>
@@ -684,12 +697,16 @@
               <span class="panel-tag glitch-text" data-text="CAMPAIGN COMPLETE // KERNEL BREACHED">CAMPAIGN COMPLETE // KERNEL BREACHED</span>
             </div>
             <h1 class="cv-title glitch-title" data-text="STACK CLEAR">STACK CLEAR</h1>
-            <p class="cv-sub">All three operations cleared. Probe team privilege retained across the die.</p>
+            <p id="cv-sub" class="cv-sub">All operations cleared. Probe team privilege retained across the die.</p>
 
             <div class="cv-stats-grid">
               <div class="cv-stat">
                 <span class="cv-stat-label">OPS CLEARED</span>
                 <span id="cv-ops" class="cv-stat-value">3/3</span>
+              </div>
+              <div class="cv-stat highlight">
+                <span class="cv-stat-label">RUN SCORE</span>
+                <span id="cv-run-score" class="cv-stat-value">0</span>
               </div>
               <div class="cv-stat highlight">
                 <span class="cv-stat-label">TOTAL XP</span>

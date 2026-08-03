@@ -105,6 +105,15 @@ export class HUD {
   private recordsWired = false;
   private menuTab: 'ops' | 'squad' | 'settings' = 'ops';
   private recordsBoard: 'skirmish' | 'campaign' = 'skirmish';
+  /** Set during missionEnd scoring; applied after debrief panel builds */
+  private pendingScoreNote: {
+    isBest: boolean;
+    placed: boolean;
+    rank: number;
+    score: number;
+    defeat?: boolean;
+    campaignRun?: boolean;
+  } | null = null;
   private unbindGame: (() => void) | null = null;
   /** Optional: parent banks mission/campaign scores after debrief math */
   private onMissionScore:
@@ -161,6 +170,8 @@ export class HUD {
     resultStandard: document.getElementById('result-standard'),
     debriefPanel: document.getElementById('debrief-panel'),
     debriefGrade: document.getElementById('debrief-grade'),
+    debriefScore: document.getElementById('debrief-score'),
+    debriefScoreNote: document.getElementById('debrief-score-note'),
     debriefTurns: document.getElementById('debrief-turns'),
     debriefKills: document.getElementById('debrief-kills'),
     debriefAlive: document.getElementById('debrief-alive'),
@@ -170,6 +181,7 @@ export class HUD {
     debriefWounds: document.getElementById('debrief-wounds'),
     campaignVictory: document.getElementById('campaign-victory'),
     cvOps: document.getElementById('cv-ops'),
+    cvRunScore: document.getElementById('cv-run-score'),
     cvTotalXp: document.getElementById('cv-total-xp'),
     cvMissionXp: document.getElementById('cv-mission-xp'),
     cvTurns: document.getElementById('cv-turns'),
@@ -178,6 +190,7 @@ export class HUD {
     cvWin: document.getElementById('cv-win'),
     cvRosterRows: document.getElementById('cv-roster-rows'),
     cvBody: document.getElementById('cv-body'),
+    cvSub: document.getElementById('cv-sub'),
     difficultyRow: document.getElementById('difficulty-row')!,
     difficultyBlurb: document.getElementById('difficulty-blurb')!,
     mapRow: document.getElementById('map-row')!,
@@ -616,6 +629,12 @@ export class HUD {
       if (on) panel.removeAttribute('hidden');
       else panel.setAttribute('hidden', '');
     }
+    // Keep sticky tabs readable after long OPS scroll
+    const shell = document.querySelector('.briefing-panel');
+    if (shell instanceof HTMLElement) {
+      shell.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (id === 'ops') this.refreshRecordsPanel();
   }
 
   /** Compact deploy line in sticky footer. */
@@ -709,7 +728,15 @@ export class HUD {
         : '';
     this.els.mapBlurb.textContent = `${mapInfo.blurb} · Suggested ICE: ${getDifficulty(op.suggestedDifficulty).label}${typeNote}`;
 
-    this.els.campaignCompleteNote?.classList.toggle('hidden', !this.campaign.completed);
+    if (this.els.campaignCompleteNote) {
+      this.els.campaignCompleteNote.classList.toggle('hidden', !this.campaign.completed);
+      if (this.campaign.completed) {
+        this.els.campaignCompleteNote.textContent =
+          this.campaign.track === 'extended'
+            ? 'Extended arc complete (10/10). Start a new extended run or switch to Standard / Skirmish.'
+            : 'Standard arc complete (3/3). Start a new campaign, try Extended 10, or switch to Skirmish.';
+      }
+    }
 
     // Dynamic stepper (3 or 10)
     this.renderCampaignStepper(n);
@@ -798,19 +825,22 @@ export class HUD {
     });
     const ol = document.getElementById('records-list');
     const empty = document.getElementById('records-empty');
+    const head = document.querySelector('.records-list-head');
     if (ol) {
       ol.innerHTML = '';
       list.forEach((e, i) => {
         const li = document.createElement('li');
-        li.className = 'records-row';
+        li.className = 'records-row' + (i === 0 ? ' gold' : i === 1 ? ' silver' : i === 2 ? ' bronze' : '');
+        const medal = i === 0 ? '◆' : i === 1 ? '◇' : i === 2 ? '○' : String(i + 1);
         li.innerHTML =
-          `<span class="rec-rank">${i + 1}</span>` +
-          `<span class="rec-score">${e.score}</span>` +
-          `<span class="rec-label">${e.label}</span>`;
+          `<span class="rec-rank">${medal}</span>` +
+          `<span class="rec-score">${e.score.toLocaleString()}</span>` +
+          `<span class="rec-label" title="${e.label}">${e.label}</span>`;
         ol.appendChild(li);
       });
     }
     empty?.classList.toggle('hidden', list.length > 0);
+    head?.classList.toggle('hidden', list.length === 0);
   }
 
   /** Footer + OPS button labels: NEW when stack clear, else RESET. */
@@ -1070,6 +1100,8 @@ export class HUD {
     this.els.debriefPanel?.classList.add('hidden');
     this.refreshLobbyWounds();
     this.refreshLoadoutShop();
+    this.refreshCampaignUI();
+    this.refreshRecordsPanel();
     this.applyDebugBarVisibility();
   }
 
@@ -1165,10 +1197,32 @@ export class HUD {
       squadTotal: stats.squadTotal,
       reason,
     });
+    const score = computeMissionScore({
+      victory,
+      grade,
+      turns: stats.turns,
+      squadAlive: stats.squadAlive,
+      squadTotal: stats.squadTotal,
+      enemyKills: stats.enemyKills,
+      reason,
+      difficulty: this.difficulty,
+      mapId: this.game.state.mapId,
+      missionType: this.game.state.missionType,
+    });
 
     if (this.els.debriefGrade) {
       this.els.debriefGrade.textContent = grade;
       this.els.debriefGrade.className = `debrief-grade grade-${grade.toLowerCase()}`;
+    }
+    if (this.els.debriefScore) this.els.debriefScore.textContent = score.toLocaleString();
+    // Apply ranking note written just before showResult
+    if (this.pendingScoreNote) {
+      const n = this.pendingScoreNote;
+      this.pendingScoreNote = null;
+      if (n.campaignRun) this.setDebriefScoreNoteCampaign(n.score);
+      else this.setDebriefScoreNote(n.isBest, n.placed, n.rank, n.score, n.defeat);
+    } else if (this.els.debriefScoreNote) {
+      this.els.debriefScoreNote.classList.add('hidden');
     }
     if (this.els.debriefTurns) this.els.debriefTurns.textContent = String(stats.turns);
     if (this.els.debriefKills) this.els.debriefKills.textContent = String(stats.enemyKills);
@@ -1238,9 +1292,17 @@ export class HUD {
     const missionXp = stats.missionXpTotal;
 
     const n = getOpCount(this.campaign.track);
+    const track = this.campaign.track ?? 'standard';
     if (this.els.cvOps) {
-      this.els.cvOps.textContent = `${n}/${n}${this.campaign.track === 'extended' ? ' EXT' : ''}`;
+      this.els.cvOps.textContent = `${n}/${n}${track === 'extended' ? ' EXT' : ''}`;
     }
+    const runScore = computeCampaignScore({
+      missionScores: [this.campaign.runScore],
+      completed: true,
+      track,
+      difficulty: this.campaign.runDifficulty ?? this.difficulty,
+    });
+    if (this.els.cvRunScore) this.els.cvRunScore.textContent = String(runScore);
     if (this.els.cvTotalXp) {
       this.els.cvTotalXp.textContent = `+${this.campaign.totalXpEarned}`;
     }
@@ -1254,11 +1316,17 @@ export class HUD {
       this.els.cvWin.textContent =
         reason === 'data_port' ? 'DATA PORT LINK' : 'HOSTILE WIPE';
     }
+    if (this.els.cvSub) {
+      this.els.cvSub.textContent =
+        track === 'extended'
+          ? `Extended arc cleared — all ${n} operations. Probe privilege retained across the die.`
+          : `Standard arc cleared — all ${n} operations. Probe privilege retained across the die.`;
+    }
     if (this.els.cvBody) {
       this.els.cvBody.textContent =
         `Final op closed on cycle T${stats.turns}. ` +
         `${stats.enemyKills} hostile process${stats.enemyKills === 1 ? '' : 'es'} terminated. ` +
-        `Campaign XP banked: +${this.campaign.totalXpEarned}.`;
+        `Run score ${runScore}. Campaign XP banked: +${this.campaign.totalXpEarned}.`;
     }
 
     const rows = this.els.cvRosterRows;
@@ -1889,8 +1957,30 @@ export class HUD {
         squadAlive: stats.squadAlive,
         label: `${mapShort} · ${diffLabel} · ${grade} · T${stats.turns}`,
       });
-      if (r.isBest) this.showToast(`PERSONAL BEST · ${score}`, false, 2400);
-      else if (r.placed) this.showToast(`RECORDS #${r.rank} · ${score}`, false, 2000);
+      this.pendingScoreNote = {
+        isBest: r.isBest,
+        placed: r.placed,
+        rank: r.rank,
+        score,
+      };
+      if (r.isBest) this.showToast(`PERSONAL BEST · ${score.toLocaleString()}`, false, 2400);
+      else if (r.placed) this.showToast(`RECORDS #${r.rank} · ${score.toLocaleString()}`, false, 2000);
+    } else if (this.playMode === 'campaign' && victory && !campaignFinale) {
+      this.pendingScoreNote = {
+        isBest: false,
+        placed: false,
+        rank: 0,
+        score,
+        campaignRun: true,
+      };
+    } else if (!victory) {
+      this.pendingScoreNote = {
+        isBest: false,
+        placed: false,
+        rank: 0,
+        score,
+        defeat: true,
+      };
     }
 
     if (campaignFinale) {
@@ -1912,8 +2002,48 @@ export class HUD {
         opsCleared: n,
         label: `${track === 'extended' ? 'EXT' : 'STD'} ${n}/${n} · ${getDifficulty(this.campaign.runDifficulty ?? this.difficulty).label} · ${finalScore}`,
       });
-      if (r.isBest) this.showToast(`CAMPAIGN PB · ${finalScore}`, false, 2600);
+      this.pendingScoreNote = {
+        isBest: r.isBest,
+        placed: r.placed,
+        rank: r.rank,
+        score: finalScore,
+      };
+      if (r.isBest) this.showToast(`CAMPAIGN PB · ${finalScore.toLocaleString()}`, false, 2600);
     }
+  }
+
+  private setDebriefScoreNote(
+    isBest: boolean,
+    placed: boolean,
+    rank: number,
+    score: number,
+    defeat = false,
+  ) {
+    const el = this.els.debriefScoreNote;
+    if (!el) return;
+    if (defeat) {
+      el.textContent = 'Defeat scores are not ranked on RECORDS.';
+      el.classList.remove('hidden', 'pb');
+      return;
+    }
+    if (isBest) {
+      el.textContent = `★ NEW PERSONAL BEST · ${score.toLocaleString()} — logged to RECORDS`;
+      el.classList.remove('hidden');
+      el.classList.add('pb');
+    } else if (placed) {
+      el.textContent = `Logged to RECORDS · rank #${rank} · ${score.toLocaleString()}`;
+      el.classList.remove('hidden', 'pb');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  private setDebriefScoreNoteCampaign(score: number) {
+    const el = this.els.debriefScoreNote;
+    if (!el) return;
+    const run = this.campaign.runScore;
+    el.textContent = `Run total ${run.toLocaleString()} · this breach +${score.toLocaleString()} (stack clear ranks on RECORDS)`;
+    el.classList.remove('hidden', 'pb');
   }
 
   private missionXpSummary(): string {
