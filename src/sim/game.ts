@@ -32,6 +32,11 @@ export class Game {
   state: MissionState;
   /** Test cheats — toggled from debug icon bar */
   debug: DebugFlags = createDebugFlags();
+  /**
+   * Once true, this breach is practice-only: no leaderboard score, no XP bank.
+   * Set when debug mode is on at jack-in or any cheat is used.
+   */
+  debugTainted = false;
   private rng: () => number;
   private listeners: Listener[] = [];
 
@@ -39,6 +44,11 @@ export class Game {
     this.state = state;
     this.rng = createRng(state.seed);
     this.refreshVision();
+  }
+
+  /** Mark this run as debug practice (idempotent). */
+  markDebugUsed() {
+    this.debugTainted = true;
   }
 
   on(fn: Listener): () => void {
@@ -1084,12 +1094,14 @@ export class Game {
   // ── Debug cheats ─────────────────────────────────────────
 
   debugClearFog() {
+    this.markDebugUsed();
     this.debug.revealAll = true;
     this.refreshVision();
     this.emit('toast', { text: 'DBG · FOG CLEARED', danger: false });
   }
 
   debugToggleFreeCyc() {
+    this.markDebugUsed();
     this.debug.freeCyc = !this.debug.freeCyc;
     this.emit('toast', {
       text: this.debug.freeCyc ? 'DBG · FREE CYC ON' : 'DBG · FREE CYC OFF',
@@ -1098,6 +1110,7 @@ export class Game {
   }
 
   debugToggleGod() {
+    this.markDebugUsed();
     this.debug.godMode = !this.debug.godMode;
     this.emit('toast', {
       text: this.debug.godMode ? 'DBG · GOD MODE ON' : 'DBG · GOD MODE OFF',
@@ -1106,6 +1119,7 @@ export class Game {
   }
 
   debugToggleAlwaysHit() {
+    this.markDebugUsed();
     this.debug.alwaysHit = !this.debug.alwaysHit;
     this.emit('toast', {
       text: this.debug.alwaysHit ? 'DBG · ALWAYS HIT ON' : 'DBG · ALWAYS HIT OFF',
@@ -1114,6 +1128,7 @@ export class Game {
   }
 
   debugHealTeam() {
+    this.markDebugUsed();
     for (const u of this.playerUnits()) {
       u.hp = u.def.maxHp;
       u.ap = u.maxAp;
@@ -1124,6 +1139,7 @@ export class Game {
   }
 
   debugKillHostiles() {
+    this.markDebugUsed();
     for (const u of this.state.units.values()) {
       if (u.def.team === 'enemy' && u.alive) {
         u.hp = 0;
@@ -1135,6 +1151,7 @@ export class Game {
   }
 
   debugWinPort() {
+    this.markDebugUsed();
     const u = this.getSelected() ?? this.playerUnits()[0];
     if (!u) return;
     const port = this.state.dataPortTiles[0];
@@ -1143,12 +1160,14 @@ export class Game {
   }
 
   debugRefillCyc() {
+    this.markDebugUsed();
     for (const u of this.playerUnits()) u.ap = u.maxAp;
     this.emit('toast', { text: 'DBG · CYC REFILLED', danger: false });
   }
 
   /** Instant +XP for testing progression (selected probe or first). */
   debugGrantXp(amount = 80) {
+    this.markDebugUsed();
     const u = this.getSelected() ?? this.playerUnits()[0];
     if (!u) return;
     const result = grantXp(u, amount, { gateAbilities: true });

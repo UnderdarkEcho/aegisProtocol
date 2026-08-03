@@ -91,14 +91,15 @@ export class HUD {
   /** Write current unit XP into localStorage roster */
   private onPersistRoster: (() => void) | null = null;
   /** Mission end: XP + wound flags */
-  private onMissionEndPersist: (() => void) | null = null;
+  private onMissionEndPersist: ((practice?: boolean) => void) | null = null;
   /** Persist loadout after shop purchase */
   private onLoadoutChanged: ((l: LoadoutState) => void) | null = null;
   /** Bank mission CRED into loadout */
   private onCredEarned: ((n: number) => void) | null = null;
   /** Campaign progress after mission end (main advances + banks XP + branch) */
-  private onMissionResult: ((victory: boolean, missionXp: number, reason: string) => void) | null =
-    null;
+  private onMissionResult:
+    | ((victory: boolean, missionXp: number, reason: string, practice?: boolean) => void)
+    | null = null;
   private onContinue: (() => void) | null = null;
   private onNewCampaign: (() => void) | null = null;
   private onResetSquad: (() => void) | null = null;
@@ -126,6 +127,7 @@ export class HUD {
     score: number;
     defeat?: boolean;
     campaignRun?: boolean;
+    practice?: boolean;
   } | null = null;
   private unbindGame: (() => void) | null = null;
   /** Optional: parent banks mission/campaign scores after debrief math */
@@ -240,8 +242,13 @@ export class HUD {
       onSelectUnit?: (id: string) => void;
       onDebugSync?: () => void;
       onPersistRoster?: () => void;
-      onMissionEndPersist?: () => void;
-      onMissionResult?: (victory: boolean, missionXp: number, reason: string) => void;
+      onMissionEndPersist?: (practice?: boolean) => void;
+      onMissionResult?: (
+        victory: boolean,
+        missionXp: number,
+        reason: string,
+        practice?: boolean,
+      ) => void;
       onContinue?: () => void;
       onNewCampaign?: () => void;
       onResetSquad?: () => void;
@@ -1244,6 +1251,11 @@ export class HUD {
     if (this.els.debugModeToggle) {
       this.els.debugModeToggle.checked = on;
     }
+    // Enabling debug during an active breach taints the run (no XP / records)
+    if (on && this.game && !this.game.isMissionOver() && this.game.state.phase !== 'briefing') {
+      this.game.markDebugUsed();
+      this.showToast('DBG PRACTICE · THIS RUN: NO XP / RECORDS', true, 2400);
+    }
     this.applyDebugBarVisibility();
   }
 
@@ -1280,6 +1292,8 @@ export class HUD {
       return;
     }
     if (!g || g.isMissionOver()) return;
+    // Any cheat use disqualifies XP / leaderboard for this breach
+    g.markDebugUsed();
     switch (action) {
       case 'fog':
         g.debugClearFog();
@@ -1459,7 +1473,14 @@ export class HUD {
     if (this.pendingScoreNote) {
       const n = this.pendingScoreNote;
       this.pendingScoreNote = null;
-      if (n.campaignRun) this.setDebriefScoreNoteCampaign(n.score);
+      if (n.practice) {
+        if (this.els.debriefScoreNote) {
+          this.els.debriefScoreNote.textContent =
+            'DBG PRACTICE — no XP, CRED, or RECORDS from this breach.';
+          this.els.debriefScoreNote.classList.remove('hidden', 'pb');
+        }
+        if (this.els.debriefScore) this.els.debriefScore.textContent = '—';
+      } else if (n.campaignRun) this.setDebriefScoreNoteCampaign(n.score);
       else this.setDebriefScoreNote(n.isBest, n.placed, n.rank, n.score, n.defeat);
     } else if (this.els.debriefScoreNote) {
       this.els.debriefScoreNote.classList.add('hidden');
@@ -2058,21 +2079,33 @@ export class HUD {
       const victory = e.payload.result === 'victory';
       const alive = Number(e.payload.squadAlive ?? 0);
       const reason = String(e.payload.reason ?? '');
+      // Debug mode / cheats → practice run: no XP bank, no CRED, no RECORDS
+      const practice = Boolean(this.game?.debugTainted);
+
       // Mission bonus XP once, then persist roster + wound flags
       if (!this.missionXpAwarded && this.game) {
         this.missionXpAwarded = true;
-        this.game.awardMissionXp(victory, reason);
-        this.onMissionEndPersist?.();
+        if (!practice) {
+          this.game.awardMissionXp(victory, reason);
+        } else {
+          // Zero mission XP so debrief lines don't look banked
+          for (const u of this.game.state.units.values()) {
+            if (u.def.team === 'player') u.missionXp = 0;
+          }
+        }
+        this.onMissionEndPersist?.(practice);
       }
 
-      const missionXp = this.game
-        ? [...this.game.state.units.values()]
-            .filter((u) => u.def.team === 'player')
-            .reduce((s, u) => s + u.missionXp, 0)
-        : 0;
+      const missionXp = practice
+        ? 0
+        : this.game
+          ? [...this.game.state.units.values()]
+              .filter((u) => u.def.team === 'player')
+              .reduce((s, u) => s + u.missionXp, 0)
+          : 0;
 
-      // Advance campaign + bank XP + Vesper branch (main persists)
-      this.onMissionResult?.(victory, missionXp, reason);
+      // Advance campaign (still OK for practice) but skip XP bank when tainted
+      this.onMissionResult?.(victory, missionXp, reason, practice);
 
       const campaignFinale =
         this.playMode === 'campaign' && victory && this.campaign.completed;
@@ -2089,18 +2122,19 @@ export class HUD {
             reason,
           })
         : 'F';
-      const credEarned = stats
-        ? earnCred({
-            victory,
-            grade,
-            enemyKills: stats.enemyKills,
-            reason,
-          })
-        : 0;
-      this.onCredEarned?.(credEarned);
+      const credEarned =
+        practice || !stats
+          ? 0
+          : earnCred({
+              victory,
+              grade,
+              enemyKills: stats.enemyKills,
+              reason,
+            });
+      if (credEarned > 0) this.onCredEarned?.(credEarned);
 
-      // Local scores / personal bests
-      if (stats) {
+      // Local scores / personal bests — never for debug practice runs
+      if (stats && !practice) {
         const score = computeMissionScore({
           victory,
           grade,
@@ -2122,9 +2156,19 @@ export class HUD {
           stats,
           campaignFinale,
         });
+      } else if (practice) {
+        this.pendingScoreNote = {
+          isBest: false,
+          placed: false,
+          rank: 0,
+          score: 0,
+          defeat: false,
+          campaignRun: false,
+          practice: true,
+        };
       }
 
-      const xpLines = this.missionXpSummary();
+      const xpLines = practice ? 'DBG PRACTICE · NO XP BANKED' : this.missionXpSummary();
       let base = victory
         ? reason === 'data_port'
           ? `Data port linked on the far side of the die. ${alive} probe${alive === 1 ? '' : 's'} still live — payload streamed to the outer system.`
@@ -2132,6 +2176,11 @@ export class HUD {
         : reason === 'deadline'
           ? 'ICE wake timer expired. Deadline missed — corporate kernel reclaimed the die.'
           : 'Probe team crashed. Link severed. Mini-game failed — ICE keeps the node.';
+
+      if (practice) {
+        base +=
+          '\n\nDBG PRACTICE RUN — debug mode or cheats were used. No XP, CRED, or RECORDS from this breach.';
+      }
 
       if (this.playMode === 'campaign' && !campaignFinale) {
         if (victory) {

@@ -531,6 +531,18 @@ describe('pickups', () => {
   });
 });
 
+describe('debug practice taint', () => {
+  it('markDebugUsed flags the run as practice', () => {
+    const game = new Game(createMission(1, 'normal'));
+    game.startMission();
+    expect(game.debugTainted).toBe(false);
+    game.markDebugUsed();
+    expect(game.debugTainted).toBe(true);
+    game.debugToggleGod();
+    expect(game.debugTainted).toBe(true);
+  });
+});
+
 describe('difficulty', () => {
   it('scales enemy aim and HP on hard vs easy', () => {
     const easy = createMission(1, 'easy');

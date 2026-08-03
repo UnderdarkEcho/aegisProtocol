@@ -55,8 +55,51 @@ let game = new Game(
 let busy = false;
 /** Enemy id currently shown in hit preview (second click confirms fire). */
 let aimedId: string | null = null;
+/** Operative XP at jack-in — restored if the breach is debug-tainted. */
+let preMissionXp = new Map<string, number>();
 
-function persistRosterFromGame(opts?: { applyWounds?: boolean }) {
+function snapshotRosterXp() {
+  preMissionXp = new Map(roster.operatives.map((o) => [o.id, o.xp]));
+}
+
+/** Roll back lifetime XP to jack-in values (debug practice runs). */
+function restoreRosterXpFromSnapshot() {
+  roster = {
+    ...roster,
+    operatives: roster.operatives.map((o) => ({
+      ...o,
+      xp: preMissionXp.has(o.id) ? preMissionXp.get(o.id)! : o.xp,
+    })),
+  };
+  saveRoster(roster);
+}
+
+function persistRosterFromGame(opts?: { applyWounds?: boolean; practice?: boolean }) {
+  if (opts?.practice) {
+    // Keep wounds from the practice run, but roll XP back to jack-in
+    const fromGame = rosterFromUnits(game.state.units.values(), roster);
+    let next = {
+      ...fromGame,
+      operatives: fromGame.operatives.map((o) => ({
+        ...o,
+        xp: preMissionXp.has(o.id) ? preMissionXp.get(o.id)! : o.xp,
+      })),
+    };
+    if (opts.applyWounds) {
+      // applyPostMissionWounds uses unit alive flags; re-map xp after
+      next = applyPostMissionWounds(next, game.state.units.values());
+      next = {
+        ...next,
+        operatives: next.operatives.map((o) => ({
+          ...o,
+          xp: preMissionXp.has(o.id) ? preMissionXp.get(o.id)! : o.xp,
+        })),
+      };
+    }
+    roster = next;
+    saveRoster(roster);
+    return;
+  }
   roster = rosterFromUnits(game.state.units.values(), roster);
   if (opts?.applyWounds) {
     roster = applyPostMissionWounds(roster, game.state.units.values());
@@ -85,30 +128,40 @@ function handlers() {
     onDebugSync: () => {
       renderer.sync(game);
       hud.refresh();
+      // Don't bank kill XP mid-run if already tainted; still allow visual unit state
+      if (game.debugTainted) return;
       persistRosterFromGame();
     },
     onPersistRoster: () => {
+      if (game.debugTainted) return;
       persistRosterFromGame();
     },
-    onMissionEndPersist: () => {
-      // XP + wound flags for next deploy
-      persistRosterFromGame({ applyWounds: true });
+    onMissionEndPersist: (practice?: boolean) => {
+      // XP + wound flags for next deploy (practice rolls XP back)
+      persistRosterFromGame({ applyWounds: true, practice: Boolean(practice) });
     },
-    onMissionResult: (victory: boolean, missionXp: number, reason: string) => {
+    onMissionResult: (
+      victory: boolean,
+      missionXp: number,
+      reason: string,
+      practice?: boolean,
+    ) => {
       if (hud.getPlayMode() !== 'campaign') return;
-      // Bank XP first so the finale screen shows the full run total
-      campaign = bankCampaignXp(campaign, missionXp);
-      // Track harshest ICE used this run
-      campaign = {
-        ...campaign,
-        runDifficulty: maxDifficulty(campaign.runDifficulty, hud.getDifficulty()),
-      };
+      // Practice/debug: still advance the arc for rehearsal, but no XP/score bank
+      if (!practice) {
+        campaign = bankCampaignXp(campaign, missionXp);
+        campaign = {
+          ...campaign,
+          runDifficulty: maxDifficulty(campaign.runDifficulty, hud.getDifficulty()),
+        };
+      }
       // reason locks Vesper path when branch op is cleared
       campaign = applyCampaignOutcome(campaign, victory, reason);
       saveCampaign(campaign);
       hud.setCampaign(campaign);
     },
     onMissionScore: (info: { victory: boolean; score: number }) => {
+      if (game.debugTainted) return;
       if (hud.getPlayMode() !== 'campaign' || !info.victory || info.score <= 0) return;
       campaign = bankCampaignRunScore(campaign, info.score);
       saveCampaign(campaign);
@@ -228,6 +281,7 @@ function deploy() {
   loadout = loadLoadout();
   hud.setCampaign(campaign);
   hud.setLoadout(loadout);
+  snapshotRosterXp();
 
   const missionType =
     playMode === 'campaign'
@@ -250,6 +304,10 @@ function deploy() {
       }),
     ),
   );
+  // Debug mode already on at jack-in → practice run (no XP / RECORDS)
+  if (hud.debugMode) {
+    game.markDebugUsed();
+  }
   game.startMission();
   hud.showHud();
   hud.setMode({ type: 'move' });
@@ -273,11 +331,15 @@ function deploy() {
       : kernelBranch === 'loud'
         ? ' · FULL ALERT'
         : '';
+  const practiceTag = game.debugTainted ? ' · DBG PRACTICE' : '';
   hud.showToast(
-    `${prefix}${mapName} · ${getDifficulty(difficulty).label} · TEAM L${avgLvl}${limit}${branchTag}`,
-    false,
+    `${prefix}${mapName} · ${getDifficulty(difficulty).label} · TEAM L${avgLvl}${limit}${branchTag}${practiceTag}`,
+    game.debugTainted,
     2800,
   );
+  if (game.debugTainted) {
+    hud.showToast('DBG PRACTICE · NO XP / RECORDS THIS RUN', true, 3200);
+  }
   const first = game.getSelected();
   if (first) renderer.cam.lockOnUnit(first.id, 3000);
   else {
@@ -289,6 +351,10 @@ function deploy() {
 function restart() {
   busy = false;
   aimedId = null;
+  // Leaving a debug-tainted breach mid-run: roll XP back to jack-in
+  if (game.debugTainted) {
+    restoreRosterXpFromSnapshot();
+  }
   const difficulty = hud.getDifficulty();
   const playMode = hud.getPlayMode();
   roster = loadRoster();
