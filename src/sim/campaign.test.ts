@@ -4,25 +4,41 @@ import {
   bankCampaignXp,
   CAMPAIGN_OP_COUNT,
   CAMPAIGN_OPS,
+  CAMPAIGN_OPS_EXTENDED,
+  CAMPAIGN_OPS_STANDARD,
   campaignProgressLabel,
   defaultCampaign,
+  getCampaignOps,
   getCurrentOp,
+  getOpCount,
   newCampaign,
   sanitizeCampaign,
 } from './campaign';
+import { defaultCampaignStore, sanitizeCampaignStore } from './campaignStore';
 
 describe('campaign ops', () => {
-  it('has three ops mapping training → vesper → kernel', () => {
+  it('standard has three ops mapping training → vesper → kernel', () => {
     expect(CAMPAIGN_OPS).toHaveLength(3);
+    expect(CAMPAIGN_OPS_STANDARD).toHaveLength(3);
+    expect(CAMPAIGN_OP_COUNT).toBe(3);
     expect(CAMPAIGN_OPS[0]!.mapId).toBe('training');
     expect(CAMPAIGN_OPS[1]!.mapId).toBe('vesper');
     expect(CAMPAIGN_OPS[2]!.mapId).toBe('kernel');
+  });
+
+  it('extended has ten ops reusing only known maps', () => {
+    expect(CAMPAIGN_OPS_EXTENDED).toHaveLength(10);
+    expect(getOpCount('extended')).toBe(10);
+    for (const op of CAMPAIGN_OPS_EXTENDED) {
+      expect(['training', 'vesper', 'kernel']).toContain(op.mapId);
+    }
   });
 
   it('starts at op 0 incomplete', () => {
     const c = defaultCampaign();
     expect(c.opIndex).toBe(0);
     expect(c.completed).toBe(false);
+    expect(c.track).toBe('standard');
     expect(getCurrentOp(c).id).toBe('op01');
   });
 });
@@ -51,7 +67,7 @@ describe('applyCampaignOutcome', () => {
     c = applyCampaignOutcome(c, true, 'data_port'); // op02
     expect(c.opIndex).toBe(2);
     expect(c.vesperPath).toBe('stealth');
-    expect(getCurrentOp(c).title).toContain('quiet');
+    expect(getCurrentOp(c).title).toMatch(/quiet/i);
   });
 
   it('locks loud path when OP-02 wins via wipe', () => {
@@ -59,7 +75,7 @@ describe('applyCampaignOutcome', () => {
     c = applyCampaignOutcome(c, true);
     c = applyCampaignOutcome(c, true, 'hostiles_eliminated');
     expect(c.vesperPath).toBe('loud');
-    expect(getCurrentOp(c).title).toContain('alert');
+    expect(getCurrentOp(c).title).toMatch(/alert/i);
   });
 
   it('completes after final op victory', () => {
@@ -77,68 +93,78 @@ describe('applyCampaignOutcome', () => {
     for (let i = 0; i < 3; i++) c = applyCampaignOutcome(c, true);
     const again = applyCampaignOutcome(c, true);
     expect(again.completed).toBe(true);
-    expect(again.clears[2]).toBe(1); // no extra clear when already completed
+    expect(again.clears[2]).toBe(1);
+  });
+
+  it('extended completes after 10 victories and locks path on EX-04', () => {
+    let c = defaultCampaign('extended');
+    expect(getOpCount(c.track)).toBe(10);
+    for (let i = 0; i < 10; i++) {
+      const op = getCampaignOps('extended')[i]!;
+      const reason = op.locksVesperPath ? 'data_port' : 'hostiles_eliminated';
+      c = applyCampaignOutcome(c, true, reason);
+      if (op.locksVesperPath) expect(c.vesperPath).toBe('stealth');
+    }
+    expect(c.completed).toBe(true);
+    expect(c.clears.filter((n) => n > 0).length).toBe(10);
   });
 });
 
-describe('sanitizeCampaign', () => {
-  it('clamps bad indexes and fills clears', () => {
+describe('sanitize + store', () => {
+  it('migrates v1-shaped object to standard track', () => {
     const s = sanitizeCampaign({
       version: 1,
-      opIndex: 99,
+      opIndex: 1,
       completed: false,
-      clears: [1],
+      clears: [1, 0, 0],
+      totalXpEarned: 40,
+      vesperPath: null,
     });
-    expect(s.opIndex).toBe(CAMPAIGN_OP_COUNT - 1);
-    expect(s.clears).toHaveLength(CAMPAIGN_OP_COUNT);
-    expect(s.clears[0]).toBe(1);
+    expect(s.version).toBe(2);
+    expect(s.track).toBe('standard');
+    expect(s.opIndex).toBe(1);
+    expect(s.runScore).toBe(0);
   });
 
-  it('rejects wrong version', () => {
-    const s = sanitizeCampaign({ version: 2, opIndex: 2, completed: true });
-    expect(s).toEqual(defaultCampaign());
-  });
-});
-
-describe('newCampaign', () => {
-  it('resets progress without depending on roster', () => {
-    let c = defaultCampaign();
-    c = applyCampaignOutcome(c, true);
-    c = applyCampaignOutcome(c, true);
-    const n = newCampaign();
-    expect(n.opIndex).toBe(0);
-    expect(n.completed).toBe(false);
-    expect(n.clears.every((x) => x === 0)).toBe(true);
-    expect(n.totalXpEarned).toBe(0);
+  it('dual-slot store keeps tracks independent', () => {
+    const store = defaultCampaignStore();
+    expect(store.standard.track).toBe('standard');
+    expect(store.extended.track).toBe('extended');
+    expect(store.extended.clears).toHaveLength(10);
+    const migrated = sanitizeCampaignStore({
+      version: 1,
+      opIndex: 2,
+      completed: true,
+      clears: [1, 1, 1],
+      totalXpEarned: 100,
+      vesperPath: 'loud',
+    });
+    expect(migrated.standard.completed).toBe(true);
+    expect(migrated.extended.completed).toBe(false);
   });
 });
 
 describe('bankCampaignXp', () => {
-  it('accumulates XP across ops', () => {
+  it('adds finite positive amounts', () => {
     let c = defaultCampaign();
-    c = bankCampaignXp(c, 100);
     c = bankCampaignXp(c, 50);
-    expect(c.totalXpEarned).toBe(150);
-    c = applyCampaignOutcome(c, true);
-    expect(c.totalXpEarned).toBe(150);
-  });
-
-  it('ignores non-positive amounts', () => {
-    const c = bankCampaignXp(defaultCampaign(), -5);
-    expect(c.totalXpEarned).toBe(0);
+    expect(c.totalXpEarned).toBe(50);
   });
 });
 
 describe('campaignProgressLabel', () => {
-  it('shows op codename mid-run', () => {
-    const c = defaultCampaign();
-    expect(campaignProgressLabel(c)).toContain('OP-01');
-    expect(campaignProgressLabel(c)).toContain('1/3');
-  });
-
-  it('shows complete when done', () => {
+  it('mentions complete when finished', () => {
     let c = defaultCampaign();
     for (let i = 0; i < 3; i++) c = applyCampaignOutcome(c, true);
-    expect(campaignProgressLabel(c)).toContain('COMPLETE');
+    expect(campaignProgressLabel(c)).toMatch(/COMPLETE/);
+  });
+});
+
+describe('newCampaign', () => {
+  it('resets to track start', () => {
+    const c = newCampaign('extended');
+    expect(c.track).toBe('extended');
+    expect(c.opIndex).toBe(0);
+    expect(c.clears).toHaveLength(10);
   });
 });

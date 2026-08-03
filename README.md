@@ -1,6 +1,6 @@
 # Aegis Protocol
 
-**v0.9.1 · public beta · fully open source (MIT)**
+**v0.9.2 · public beta · fully open source (MIT)**
 
 A browser turn-based tactics mini-game: jack a four-probe team onto a contested corporate die and either **wipe hostile processes** or **channel the north data port**. Three.js + TypeScript. XCOM-shaped tactics with a proto-cyberpunk skin.
 
@@ -65,9 +65,12 @@ Open the local URL. Enter the deck. Configure **OPS / SQUAD / SETTINGS**, then *
 | Scroll | Zoom |
 | Esc | Cancel targeting |
 
-### Features (0.9 beta)
+### Features (0.9.2 beta)
 
-- Campaign (3 ops + Vesper branching) and free skirmish
+- Campaign arcs: **Standard (3 ops)** or **Extended (10 ops)** + Vesper branching
+- Free skirmish (map / objective / ICE pick)
+- ICE hardness: Sandbox → Live Net → Black Ice → **Void Ice** (extreme)
+- Local **RECORDS** leaderboard (skirmish + campaign personal bests)
 - Cover, flanks, FOW, pod activation, overwatch, grenades, smoke, heal
 - Data port **channel + hold** (anti-rush)
 - Deadline missions (ICE wake clock)
@@ -139,7 +142,7 @@ Attribution appreciated but not required: *Aegis Protocol* by UnderdarkEcho.
 
 ## Status
 
-**0.9.1 public beta.** Vertical slice is playable end-to-end (campaign, skirmish, progression, audio, polish). Expect rough edges: AI can still be dense, content is three maps, and the “outer sim” this mini-game plugs into is not in this repo.
+**0.9.2 public beta.** Vertical slice is playable end-to-end (standard + extended campaign, skirmish, Void Ice, local records, progression, audio). Expect rough edges: AI can still be dense, content reuses three maps, and the “outer sim” this mini-game plugs into is not in this repo.
 
 Issues and PRs welcome.
 
@@ -148,4 +151,4 @@ Issues and PRs welcome.
 ## Repo
 
 - GitHub: [github.com/UnderdarkEcho/aegisProtocol](https://github.com/UnderdarkEcho/aegisProtocol)
-- Version: **0.9.1-beta**
+- Version: **0.9.2-beta**

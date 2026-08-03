@@ -5,11 +5,18 @@ import { createMission, getMapInfo } from './content/map';
 import { runEnemyTurn } from './sim/ai';
 import {
   applyCampaignOutcome,
+  bankCampaignRunScore,
   bankCampaignXp,
   getCurrentOp,
   type CampaignState,
+  type CampaignTrack,
 } from './sim/campaign';
-import { loadCampaign, resetCampaign, saveCampaign } from './sim/campaignStore';
+import {
+  loadCampaign,
+  resetCampaign,
+  saveCampaign,
+  setActiveTrack,
+} from './sim/campaignStore';
 import { getDifficulty } from './sim/difficulty';
 import { Game } from './sim/game';
 import { keyOf } from './sim/grid';
@@ -17,6 +24,7 @@ import type { LoadoutState } from './sim/loadout';
 import { loadLoadout, resetLoadout, saveLoadout } from './sim/loadoutStore';
 import { applyPostMissionWounds, rosterFromUnits } from './sim/progression';
 import { loadRoster, resetRoster, saveRoster } from './sim/roster';
+import { maxDifficulty } from './sim/scores';
 import type { DifficultyId } from './sim/types';
 import { HUD } from './ui/hud';
 import { GameRenderer } from './view/renderer';
@@ -90,10 +98,31 @@ function handlers() {
       if (hud.getPlayMode() !== 'campaign') return;
       // Bank XP first so the finale screen shows the full run total
       campaign = bankCampaignXp(campaign, missionXp);
-      // reason locks Vesper path when OP-02 is cleared
+      // Track harshest ICE used this run
+      campaign = {
+        ...campaign,
+        runDifficulty: maxDifficulty(campaign.runDifficulty, hud.getDifficulty()),
+      };
+      // reason locks Vesper path when branch op is cleared
       campaign = applyCampaignOutcome(campaign, victory, reason);
       saveCampaign(campaign);
       hud.setCampaign(campaign);
+    },
+    onMissionScore: (info: { victory: boolean; score: number }) => {
+      if (hud.getPlayMode() !== 'campaign' || !info.victory || info.score <= 0) return;
+      campaign = bankCampaignRunScore(campaign, info.score);
+      saveCampaign(campaign);
+      hud.setCampaign(campaign);
+    },
+    onCampaignTrackChange: (track: CampaignTrack) => {
+      campaign = setActiveTrack(track);
+      hud.setCampaign(campaign);
+      hud.setPlayMode('campaign');
+      hud.showToast(
+        track === 'extended' ? 'ARC · EXTENDED 10 OPS' : 'ARC · STANDARD 3 OPS',
+        false,
+        1800,
+      );
     },
     onCredEarned: (n: number) => {
       if (n <= 0) return;
@@ -112,15 +141,21 @@ function handlers() {
     },
     onNewCampaign: () => {
       const done = campaign.completed;
+      const track = campaign.track ?? 'standard';
+      const label = track === 'extended' ? 'EX-01' : 'OP-01';
       const msg = done
-        ? 'Start a new campaign from OP-01?\nProbe XP is kept.'
-        : 'Reset campaign to OP-01?\nProgress and Vesper path clear. Probe XP is kept.';
+        ? `Start a new ${track} campaign from ${label}?\nProbe XP is kept. Other arc progress is preserved.`
+        : `Reset ${track} campaign to ${label}?\nProgress and Vesper path clear on this arc only. Probe XP is kept.`;
       if (!window.confirm(msg)) return;
-      campaign = resetCampaign();
+      campaign = resetCampaign(track);
       hud.setCampaign(campaign);
       hud.setPlayMode('campaign');
       restart();
-      hud.showToast(done ? 'NEW CAMPAIGN · OP-01' : 'CAMPAIGN RESET · OP-01', false, 2400);
+      hud.showToast(
+        done ? `NEW CAMPAIGN · ${label}` : `CAMPAIGN RESET · ${label}`,
+        false,
+        2400,
+      );
     },
     onResetSquad: () => {
       if (

@@ -535,8 +535,12 @@ describe('difficulty', () => {
   it('scales enemy aim and HP on hard vs easy', () => {
     const easy = createMission(1, 'easy');
     const hard = createMission(1, 'hard');
+    const extreme = createMission(1, 'extreme');
     const eEasy = easy.units.get('e_pmc1')!;
     const eHard = hard.units.get('e_pmc1')!;
+    const eExt = extreme.units.get('e_pmc1')!;
+    expect(eExt.def.aim).toBeGreaterThan(eHard.def.aim);
+    expect(eExt.def.maxHp).toBeGreaterThan(eHard.def.maxHp);
     expect(eHard.def.aim).toBeGreaterThan(eEasy.def.aim);
     expect(eHard.def.maxHp).toBeGreaterThan(eEasy.def.maxHp);
     expect(easy.difficulty).toBe('easy');

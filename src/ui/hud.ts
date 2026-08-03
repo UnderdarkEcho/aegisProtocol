@@ -8,12 +8,13 @@ import { sfx } from '../audio/sfx';
 import { ABILITIES, CLASS_LABEL } from '../content/classes';
 import { getMapInfo, MAPS, type MapId } from '../content/map';
 import {
-  CAMPAIGN_OP_COUNT,
-  CAMPAIGN_OPS,
   campaignProgressLabel,
   defaultCampaign,
+  getCampaignOps,
   getCurrentOp,
+  getOpCount,
   type CampaignState,
+  type CampaignTrack,
   type PlayMode,
 } from '../sim/campaign';
 import type { Game } from '../sim/game';
@@ -35,6 +36,12 @@ import {
   xpBar,
 } from '../sim/progression';
 import { loadRoster, resetRoster, saveRoster } from '../sim/roster';
+import { computeCampaignScore, computeMissionScore } from '../sim/scores';
+import {
+  clearLeaderboard,
+  insertScore,
+  loadLeaderboard,
+} from '../sim/scoreStore';
 import type {
   AbilityId,
   CoverLevel,
@@ -94,8 +101,22 @@ export class HUD {
   private debugModeWired = false;
   private musicWired = false;
   private tabsWired = false;
+  private trackWired = false;
+  private recordsWired = false;
   private menuTab: 'ops' | 'squad' | 'settings' = 'ops';
+  private recordsBoard: 'skirmish' | 'campaign' = 'skirmish';
   private unbindGame: (() => void) | null = null;
+  /** Optional: parent banks mission/campaign scores after debrief math */
+  private onMissionScore:
+    | ((info: {
+        victory: boolean;
+        score: number;
+        grade: string;
+        reason: string;
+        stats: ReturnType<typeof collectMissionStats>;
+      }) => void)
+    | null = null;
+  private onCampaignTrackChange: ((track: CampaignTrack) => void) | null = null;
   private missionXpAwarded = false;
   private toastTimer = 0;
 
@@ -200,6 +221,14 @@ export class HUD {
       onResetSquad?: () => void;
       onLoadoutChanged?: (l: LoadoutState) => void;
       onCredEarned?: (n: number) => void;
+      onMissionScore?: (info: {
+        victory: boolean;
+        score: number;
+        grade: string;
+        reason: string;
+        stats: ReturnType<typeof collectMissionStats>;
+      }) => void;
+      onCampaignTrackChange?: (track: CampaignTrack) => void;
     },
   ) {
     this.game = game;
@@ -214,6 +243,8 @@ export class HUD {
     this.onContinue = handlers.onContinue ?? null;
     this.onNewCampaign = handlers.onNewCampaign ?? null;
     this.onResetSquad = handlers.onResetSquad ?? null;
+    this.onMissionScore = handlers.onMissionScore ?? null;
+    this.onCampaignTrackChange = handlers.onCampaignTrackChange ?? null;
     this.missionXpAwarded = false;
 
     this.els.btnDeploy.onclick = () => handlers.onDeploy();
@@ -232,6 +263,7 @@ export class HUD {
     this.wireStaticTooltips();
     this.wireMenuTabs();
     this.wirePlayMode();
+    this.wireCampaignTrack();
     this.wireMapPicker();
     this.wireMissionType();
     this.wireLoadoutShop();
@@ -239,6 +271,7 @@ export class HUD {
     this.wireDebugModeToggle();
     this.wireDebugBar();
     this.wireMusicControls();
+    this.wireRecords();
     // Keep briefing selection in sync with mission (e.g. after redeploy)
     if (game.state.difficulty) {
       this.setDifficulty(game.state.difficulty);
@@ -592,13 +625,19 @@ export class HUD {
     const mapId = this.resolveDeployMapId();
     const map = getMapInfo(mapId).short;
     const diff = getDifficulty(this.difficulty).label;
-    const mode = this.playMode === 'campaign' ? 'CAMPAIGN' : 'SKIRMISH';
+    const mode =
+      this.playMode === 'campaign'
+        ? this.campaign.track === 'extended'
+          ? 'CAMPAIGN EXT'
+          : 'CAMPAIGN'
+        : 'SKIRMISH';
     let extra = '';
     if (this.playMode === 'skirmish' && this.missionType === 'deadline') {
       extra = ' · DEADLINE';
     } else if (this.playMode === 'campaign') {
       const op = getCurrentOp(this.campaign);
-      extra = ` · ${op.codename}`;
+      const n = getOpCount(this.campaign.track);
+      extra = ` · ${op.codename} · ${this.campaign.opIndex + 1}/${n}`;
       if (op.missionType === 'deadline') extra += ' · DEADLINE';
     }
     el.textContent = `${mode} · ${map} · ${diff}${extra}`;
@@ -620,6 +659,7 @@ export class HUD {
   private refreshCampaignUI() {
     const campaign = this.playMode === 'campaign';
     this.els.campaignPanel?.classList.toggle('hidden', !campaign);
+    document.getElementById('campaign-track-row')?.classList.toggle('hidden', !campaign);
     this.els.mapRow.classList.toggle('hidden', campaign);
     this.els.campaignMapLock?.classList.toggle('hidden', !campaign);
     // Campaign ops lock objective type; skirmish can pick
@@ -627,6 +667,14 @@ export class HUD {
     if (this.els.mapSectionTitle) {
       this.els.mapSectionTitle.textContent = campaign ? 'CURRENT OP NODE' : 'TARGET NODE';
     }
+
+    // Track chips
+    const track = this.campaign.track ?? 'standard';
+    document.querySelectorAll<HTMLButtonElement>('.track-btn').forEach((btn) => {
+      const on = btn.dataset.track === track;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
 
     // Campaign reset always available (OPS + footer)
     this.els.btnNewCampaign?.classList.remove('hidden');
@@ -643,13 +691,16 @@ export class HUD {
 
     const op = getCurrentOp(this.campaign);
     const mapInfo = getMapInfo(op.mapId);
+    const n = getOpCount(this.campaign.track);
     // Sync locked map selection for display consistency
     this.mapId = op.mapId;
     this.setMapId(op.mapId);
 
     if (this.els.campaignOpCode) this.els.campaignOpCode.textContent = op.codename;
     if (this.els.campaignOpTitle) this.els.campaignOpTitle.textContent = op.title;
-    if (this.els.campaignOpBlurb) this.els.campaignOpBlurb.textContent = op.blurb;
+    if (this.els.campaignOpBlurb) {
+      this.els.campaignOpBlurb.textContent = `${op.blurb} · Arc ${this.campaign.opIndex + 1}/${n}`;
+    }
     if (this.els.campaignLockMap) this.els.campaignLockMap.textContent = mapInfo.short;
     this.setMissionType(op.missionType);
     const typeNote =
@@ -660,19 +711,8 @@ export class HUD {
 
     this.els.campaignCompleteNote?.classList.toggle('hidden', !this.campaign.completed);
 
-    // Stepper
-    const steps = this.els.campaignStepper?.querySelectorAll<HTMLElement>('.camp-step');
-    if (steps) {
-      steps.forEach((el) => {
-        const i = Number(el.dataset.step);
-        el.classList.toggle('done', this.campaign.clears[i]! > 0 || (this.campaign.completed && i < CAMPAIGN_OP_COUNT));
-        el.classList.toggle(
-          'active',
-          !this.campaign.completed && i === this.campaign.opIndex,
-        );
-        el.classList.toggle('complete-all', this.campaign.completed);
-      });
-    }
+    // Dynamic stepper (3 or 10)
+    this.renderCampaignStepper(n);
 
     // Deploy sublabel
     const sub = this.els.btnDeploy.querySelector('.btn-jack-sub');
@@ -684,6 +724,93 @@ export class HUD {
       }
     }
     this.refreshDeploySummary();
+  }
+
+  private renderCampaignStepper(n: number) {
+    const host = this.els.campaignStepper;
+    if (!host) return;
+    host.innerHTML = '';
+    host.classList.toggle('extended', n > 5);
+    for (let i = 0; i < n; i++) {
+      if (i > 0) {
+        const line = document.createElement('span');
+        line.className = 'camp-line';
+        host.appendChild(line);
+      }
+      const step = document.createElement('span');
+      step.className = 'camp-step';
+      step.dataset.step = String(i);
+      step.textContent = String(i + 1);
+      const done =
+        (this.campaign.clears[i] ?? 0) > 0 ||
+        (this.campaign.completed && i < n);
+      step.classList.toggle('done', done);
+      step.classList.toggle(
+        'active',
+        !this.campaign.completed && i === this.campaign.opIndex,
+      );
+      step.classList.toggle('complete-all', this.campaign.completed);
+      host.appendChild(step);
+    }
+  }
+
+  private wireCampaignTrack() {
+    if (this.trackWired) return;
+    this.trackWired = true;
+    document.getElementById('campaign-track-row')?.addEventListener('click', (ev) => {
+      const btn = (ev.target as HTMLElement).closest('.track-btn') as HTMLButtonElement | null;
+      const track = btn?.dataset.track as CampaignTrack | undefined;
+      if (track !== 'standard' && track !== 'extended') return;
+      if (track === this.campaign.track) return;
+      this.onCampaignTrackChange?.(track);
+      sfx.ui();
+    });
+  }
+
+  private wireRecords() {
+    if (this.recordsWired) return;
+    this.recordsWired = true;
+    document.getElementById('records-board-row')?.addEventListener('click', (ev) => {
+      const btn = (ev.target as HTMLElement).closest('.records-btn') as HTMLButtonElement | null;
+      const board = btn?.dataset.records as 'skirmish' | 'campaign' | undefined;
+      if (board !== 'skirmish' && board !== 'campaign') return;
+      this.recordsBoard = board;
+      this.refreshRecordsPanel();
+      sfx.ui();
+    });
+    document.getElementById('btn-clear-records')?.addEventListener('click', () => {
+      if (!window.confirm('Clear all local skirmish and campaign records?')) return;
+      clearLeaderboard();
+      this.refreshRecordsPanel();
+      sfx.ui();
+      this.showToast('RECORDS WIPED', false, 1600);
+    });
+    this.refreshRecordsPanel();
+  }
+
+  refreshRecordsPanel() {
+    const board = loadLeaderboard();
+    const list = this.recordsBoard === 'campaign' ? board.campaign : board.skirmish;
+    document.querySelectorAll<HTMLButtonElement>('.records-btn').forEach((btn) => {
+      const on = btn.dataset.records === this.recordsBoard;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const ol = document.getElementById('records-list');
+    const empty = document.getElementById('records-empty');
+    if (ol) {
+      ol.innerHTML = '';
+      list.forEach((e, i) => {
+        const li = document.createElement('li');
+        li.className = 'records-row';
+        li.innerHTML =
+          `<span class="rec-rank">${i + 1}</span>` +
+          `<span class="rec-score">${e.score}</span>` +
+          `<span class="rec-label">${e.label}</span>`;
+        ol.appendChild(li);
+      });
+    }
+    empty?.classList.toggle('hidden', list.length > 0);
   }
 
   /** Footer + OPS button labels: NEW when stack clear, else RESET. */
@@ -1110,7 +1237,10 @@ export class HUD {
     const stats = collectMissionStats(this.game, reason);
     const missionXp = stats.missionXpTotal;
 
-    if (this.els.cvOps) this.els.cvOps.textContent = `${CAMPAIGN_OP_COUNT}/${CAMPAIGN_OP_COUNT}`;
+    const n = getOpCount(this.campaign.track);
+    if (this.els.cvOps) {
+      this.els.cvOps.textContent = `${n}/${n}${this.campaign.track === 'extended' ? ' EXT' : ''}`;
+    }
     if (this.els.cvTotalXp) {
       this.els.cvTotalXp.textContent = `+${this.campaign.totalXpEarned}`;
     }
@@ -1188,7 +1318,7 @@ export class HUD {
     ).short;
     const campPrefix =
       g.state.playMode === 'campaign' && g.state.campaignOpId
-        ? `${CAMPAIGN_OPS.find((o) => o.id === g.state.campaignOpId)?.codename ?? 'OP'}  ·  `
+        ? `${getCampaignOps(this.campaign.track).find((o) => o.id === g.state.campaignOpId)?.codename ?? 'OP'}  ·  `
         : g.state.playMode === 'campaign'
           ? `${campaignProgressLabel(this.campaign)}  ·  `
           : '';
@@ -1660,6 +1790,31 @@ export class HUD {
         : 0;
       this.onCredEarned?.(credEarned);
 
+      // Local scores / personal bests
+      if (stats) {
+        const score = computeMissionScore({
+          victory,
+          grade,
+          turns: stats.turns,
+          squadAlive: stats.squadAlive,
+          squadTotal: stats.squadTotal,
+          enemyKills: stats.enemyKills,
+          reason,
+          difficulty: this.difficulty,
+          mapId: this.game?.state.mapId,
+          missionType: this.game?.state.missionType,
+        });
+        this.onMissionScore?.({ victory, score, grade, reason, stats });
+        this.recordLocalScores({
+          victory,
+          score,
+          grade,
+          reason,
+          stats,
+          campaignFinale,
+        });
+      }
+
       const xpLines = this.missionXpSummary();
       let base = victory
         ? reason === 'data_port'
@@ -1671,12 +1826,23 @@ export class HUD {
 
       if (this.playMode === 'campaign' && !campaignFinale) {
         if (victory) {
-          // Just cleared OP-02? call out the Kernel branch that locked in
-          if (this.campaign.vesperPath && this.campaign.opIndex === 2) {
-            base +=
-              this.campaign.vesperPath === 'stealth'
-                ? '\n\nVESPER PATH: QUIET — Kernel will be understaffed.'
-                : '\n\nVESPER PATH: LOUD — Kernel is on full alert.';
+          // Branch just locked if path is set and next/current is kernel
+          if (this.campaign.vesperPath) {
+            const cur = getCurrentOp(this.campaign);
+            if (cur.mapId === 'kernel' || this.campaign.opIndex > 0) {
+              // Only announce once when path is fresh — after locking op advances past it
+              const justLocked =
+                this.campaign.vesperPath &&
+                (this.campaign.track === 'standard'
+                  ? this.campaign.opIndex === 2
+                  : this.campaign.opIndex === 4);
+              if (justLocked) {
+                base +=
+                  this.campaign.vesperPath === 'stealth'
+                    ? '\n\nVESPER PATH: QUIET — Kernel will be understaffed.'
+                    : '\n\nVESPER PATH: LOUD — Kernel is on full alert.';
+              }
+            }
           }
           const next = getCurrentOp(this.campaign);
           base += `\n\nNext: ${next.codename} — ${next.title}.`;
@@ -1692,7 +1858,61 @@ export class HUD {
           ? `${base}\n\n${xpLines}`
           : base;
       this.showResult(victory, detail, { campaignFinale, reason, credEarned });
+      this.refreshRecordsPanel();
       this.refresh();
+    }
+  }
+
+  private recordLocalScores(opts: {
+    victory: boolean;
+    score: number;
+    grade: string;
+    reason: string;
+    stats: ReturnType<typeof collectMissionStats>;
+    campaignFinale: boolean;
+  }) {
+    const { victory, score, grade, reason, stats, campaignFinale } = opts;
+    const mapId = this.game?.state.mapId ?? this.mapId;
+    const mapShort = getMapInfo(mapId as MapId).short;
+    const diffLabel = getDifficulty(this.difficulty).label;
+
+    if (this.playMode === 'skirmish' && victory) {
+      const r = insertScore(loadLeaderboard(), {
+        mode: 'skirmish',
+        score,
+        grade,
+        mapId,
+        difficulty: this.difficulty,
+        reason,
+        turns: stats.turns,
+        kills: stats.enemyKills,
+        squadAlive: stats.squadAlive,
+        label: `${mapShort} · ${diffLabel} · ${grade} · T${stats.turns}`,
+      });
+      if (r.isBest) this.showToast(`PERSONAL BEST · ${score}`, false, 2400);
+      else if (r.placed) this.showToast(`RECORDS #${r.rank} · ${score}`, false, 2000);
+    }
+
+    if (campaignFinale) {
+      const track = this.campaign.track ?? 'standard';
+      const n = getOpCount(track);
+      // runScore already includes this mission (banked via onMissionScore)
+      const finalScore = computeCampaignScore({
+        missionScores: [Math.max(this.campaign.runScore, score)],
+        completed: true,
+        track,
+        difficulty: this.campaign.runDifficulty ?? this.difficulty,
+      });
+      const r = insertScore(loadLeaderboard(), {
+        mode: 'campaign',
+        track,
+        score: finalScore,
+        difficulty: this.campaign.runDifficulty ?? this.difficulty,
+        totalXp: this.campaign.totalXpEarned,
+        opsCleared: n,
+        label: `${track === 'extended' ? 'EXT' : 'STD'} ${n}/${n} · ${getDifficulty(this.campaign.runDifficulty ?? this.difficulty).label} · ${finalScore}`,
+      });
+      if (r.isBest) this.showToast(`CAMPAIGN PB · ${finalScore}`, false, 2600);
     }
   }
 

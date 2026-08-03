@@ -155,7 +155,8 @@ function chooseGrenadeTarget(
       }
       // Hard: allow 1 friendly fire if hitting many players
       const friendlyOk =
-        friendly === 0 || (profile.id === 'hard' && hits >= 3 && friendly <= 1);
+        friendly === 0 ||
+        ((profile.id === 'hard' || profile.id === 'extreme') && hits >= 3 && friendly <= 1);
       if (hits > bestHits && friendlyOk) {
         bestHits = hits;
         best = c;

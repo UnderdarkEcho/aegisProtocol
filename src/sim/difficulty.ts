@@ -84,9 +84,27 @@ export const DIFFICULTIES: Record<DifficultyId, DifficultyProfile> = {
     armorBonus: 1,
     damageBonus: 1,
   },
+  extreme: {
+    id: 'extreme',
+    label: 'VOID ICE',
+    blurb: 'Abyssal kernel — ruthless injects, free cascade.sys, brutal integrity',
+    shotThreshold: 18,
+    postMoveShotThreshold: 1,
+    grenadeEnabled: true,
+    grenadeMinHits: 1,
+    coverFullBonus: 60,
+    coverHalfBonus: 40,
+    flankMoveBonus: 28,
+    hitChanceMoveWeight: 0.28,
+    aimBonus: 18,
+    defenseBonus: 12,
+    hpBonus: 3,
+    armorBonus: 2,
+    damageBonus: 2,
+  },
 };
 
-export const DIFFICULTY_ORDER: DifficultyId[] = ['easy', 'normal', 'hard'];
+export const DIFFICULTY_ORDER: DifficultyId[] = ['easy', 'normal', 'hard', 'extreme'];
 
 export function getDifficulty(id: DifficultyId): DifficultyProfile {
   return DIFFICULTIES[id];

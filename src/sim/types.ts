@@ -200,7 +200,7 @@ export interface GameEvent {
   payload: Record<string, unknown>;
 }
 
-export type DifficultyId = 'easy' | 'normal' | 'hard';
+export type DifficultyId = 'easy' | 'normal' | 'hard' | 'extreme';
 
 /**
  * Mission objective shape.

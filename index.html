@@ -145,7 +145,7 @@
                   <button type="button" class="diff-btn mode-btn active" data-mode="campaign" aria-pressed="true">
                     <span class="mode-key">[A]</span>
                     <span class="diff-name">CAMPAIGN</span>
-                    <span class="diff-desc">3 ops · story arc</span>
+                    <span class="diff-desc">Story arcs</span>
                   </button>
                   <button type="button" class="diff-btn mode-btn" data-mode="skirmish" aria-pressed="false">
                     <span class="mode-key">[B]</span>
@@ -153,14 +153,18 @@
                     <span class="diff-desc">Free map pick</span>
                   </button>
                 </div>
+                <div id="campaign-track-row" class="difficulty-row mode-row campaign-track-row" role="radiogroup" aria-label="Campaign arc">
+                  <button type="button" class="diff-btn track-btn active" data-track="standard" aria-pressed="true">
+                    <span class="diff-name">STANDARD</span>
+                    <span class="diff-desc">3 ops · classic arc</span>
+                  </button>
+                  <button type="button" class="diff-btn track-btn" data-track="extended" aria-pressed="false">
+                    <span class="diff-name">EXTENDED</span>
+                    <span class="diff-desc">10 ops · hard climb</span>
+                  </button>
+                </div>
                 <div id="campaign-panel" class="campaign-panel holo-panel">
-                  <div id="campaign-stepper" class="campaign-stepper" aria-hidden="true">
-                    <span class="camp-step active" data-step="0">1</span>
-                    <span class="camp-line"></span>
-                    <span class="camp-step" data-step="1">2</span>
-                    <span class="camp-line"></span>
-                    <span class="camp-step" data-step="2">3</span>
-                  </div>
+                  <div id="campaign-stepper" class="campaign-stepper" aria-hidden="true"></div>
                   <div class="campaign-op-meta">
                     <div id="campaign-op-code" class="campaign-op-code">OP-01 PIN PAD</div>
                     <div id="campaign-op-title" class="campaign-op-title">Soft insert</div>
@@ -177,7 +181,7 @@
                     RESET CAMPAIGN
                   </button>
                   <p class="difficulty-blurb ops-action-note">
-                    Always available — restarts at OP-01, clears Vesper path. Probe XP is kept.
+                    Resets the active arc only (standard or extended). Probe XP is kept.
                   </p>
                 </div>
               </section>
@@ -237,7 +241,7 @@
                   <span class="section-num">03</span>
                   <span class="section-title">ICE HARDNESS</span>
                 </div>
-                <div id="difficulty-row" class="difficulty-row" role="radiogroup" aria-label="Difficulty">
+                <div id="difficulty-row" class="difficulty-row difficulty-row-4" role="radiogroup" aria-label="Difficulty">
                   <button type="button" class="diff-btn" data-difficulty="easy" aria-pressed="false">
                     <span class="diff-name">SANDBOX</span>
                     <span class="diff-desc">Legacy wardens · soft ACC</span>
@@ -249,6 +253,10 @@
                   <button type="button" class="diff-btn" data-difficulty="hard" aria-pressed="false">
                     <span class="diff-name">BLACK ICE</span>
                     <span class="diff-desc">Hard kernel · flanks</span>
+                  </button>
+                  <button type="button" class="diff-btn extreme-btn" data-difficulty="extreme" aria-pressed="false">
+                    <span class="diff-name">VOID ICE</span>
+                    <span class="diff-desc">Abyssal · extreme</span>
                   </button>
                 </div>
                 <p id="difficulty-blurb" class="difficulty-blurb">
@@ -267,6 +275,28 @@
                   <li><span class="obj-icon">◉</span><span>Port is not a free touch — leave or crash severs the channel</span></li>
                   <li><span class="obj-icon">◉</span><span>Cover = components · flank · sleep pods wake on scan · loot · XP</span></li>
                 </ul>
+              </section>
+
+              <section class="menu-section deck-module" id="records-section">
+                <div class="section-head">
+                  <span class="section-num">05</span>
+                  <span class="section-title">RECORDS</span>
+                </div>
+                <div class="records-panel holo-panel">
+                  <div id="records-board-row" class="difficulty-row mode-row" role="radiogroup" aria-label="Records board">
+                    <button type="button" class="diff-btn records-btn active" data-records="skirmish" aria-pressed="true">
+                      <span class="diff-name">SKIRMISH</span>
+                      <span class="diff-desc">Single breach bests</span>
+                    </button>
+                    <button type="button" class="diff-btn records-btn" data-records="campaign" aria-pressed="false">
+                      <span class="diff-name">CAMPAIGN</span>
+                      <span class="diff-desc">Stack clear bests</span>
+                    </button>
+                  </div>
+                  <ol id="records-list" class="records-list"></ol>
+                  <p id="records-empty" class="difficulty-blurb records-empty">No breaches logged. Jack in and clear a node.</p>
+                  <button type="button" id="btn-clear-records" class="btn btn-ghost btn-danger-ghost records-clear">CLEAR RECORDS</button>
+                </div>
               </section>
             </div>
 
