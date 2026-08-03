@@ -12,9 +12,11 @@ import {
   killXp,
   levelFromXp,
   missionBonusXp,
+  privilegeBoostCost,
   rosterFromUnits,
   totalXpForLevel,
   xpToNextLevel,
+  xpToReachLevel,
   MAX_LEVEL,
 } from './progression';
 
@@ -33,6 +35,20 @@ describe('progression XP curve', () => {
 
   it('caps at MAX_LEVEL', () => {
     expect(levelFromXp(99999)).toBe(MAX_LEVEL);
+  });
+});
+
+describe('privilege boost cost', () => {
+  it('scales by level and nulls at max', () => {
+    expect(privilegeBoostCost(1)).toBe(115);
+    expect(privilegeBoostCost(2)).toBe(150);
+    expect(privilegeBoostCost(MAX_LEVEL)).toBeNull();
+  });
+
+  it('xpToReachLevel covers the gap to next level', () => {
+    const atL1 = 0;
+    const need = xpToReachLevel(atL1, 2);
+    expect(levelFromXp(atL1 + need)).toBe(2);
   });
 });
 

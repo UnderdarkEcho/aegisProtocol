@@ -21,6 +21,7 @@ import type { Game } from '../sim/game';
 import { DIFFICULTIES, getDifficulty, type DifficultyId } from '../sim/difficulty';
 import { debugStatusLine } from '../sim/debug';
 import {
+  applyLoadoutToDef,
   earnCred,
   MEDKIT,
   nextUpgradeCost,
@@ -30,10 +31,19 @@ import {
   type UpgradeId,
 } from '../sim/loadout';
 import {
+  abilitiesAtLevel,
+  abilitiesUnlockedAt,
+  applyWoundDebuffs,
+  buildSoldierAtLevel,
   debriefGrade,
+  levelFromXp,
   MAX_LEVEL,
-  WOUND_PENALTIES,
+  privilegeBoostCost,
+  unlockTable,
   xpBar,
+  xpToReachLevel,
+  WOUND_PENALTIES,
+  type PlayerClassId,
 } from '../sim/progression';
 import { loadRoster, resetRoster, saveRoster } from '../sim/roster';
 import { computeCampaignScore, computeMissionScore } from '../sim/scores';
@@ -103,8 +113,11 @@ export class HUD {
   private tabsWired = false;
   private trackWired = false;
   private recordsWired = false;
+  private squadWired = false;
   private menuTab: 'ops' | 'squad' | 'settings' = 'ops';
   private recordsBoard: 'skirmish' | 'campaign' = 'skirmish';
+  /** Selected operative in SQUAD tab dossier */
+  private selectedOpId: string | null = null;
   /** Set during missionEnd scoring; applied after debrief panel builds */
   private pendingScoreNote: {
     isBest: boolean;
@@ -285,6 +298,7 @@ export class HUD {
     this.wireDebugBar();
     this.wireMusicControls();
     this.wireRecords();
+    this.wireSquadDossier();
     // Keep briefing selection in sync with mission (e.g. after redeploy)
     if (game.state.difficulty) {
       this.setDifficulty(game.state.difficulty);
@@ -310,6 +324,7 @@ export class HUD {
   setLoadout(l: LoadoutState) {
     this.loadout = l;
     this.refreshLoadoutShop();
+    this.refreshSquadDossier();
   }
 
   private wireLoadoutShop() {
@@ -339,6 +354,7 @@ export class HUD {
       this.loadout = r.state;
       this.onLoadoutChanged?.(this.loadout);
       this.refreshLoadoutShop();
+      this.refreshSquadDossier();
       sfx.shop();
       if (toast) {
         toast.textContent = `INSTALLED · ${UPGRADES[id as UpgradeId].name}`;
@@ -379,10 +395,233 @@ export class HUD {
     this.onLoadoutChanged?.(this.loadout);
     this.refreshLoadoutShop();
     this.refreshLobbyWounds();
+    this.refreshSquadDossier();
     sfx.heal();
     if (toast) {
       toast.textContent = 'patch.bay · ALL WOUNDS CLEARED';
       toast.classList.remove('hidden', 'err');
+    }
+  }
+
+  private wireSquadDossier() {
+    if (this.squadWired) return;
+    this.squadWired = true;
+    document.getElementById('class-row')?.addEventListener('click', (ev) => {
+      const chip = (ev.target as HTMLElement).closest('.class-chip') as HTMLButtonElement | null;
+      const id = chip?.dataset.opId;
+      if (!id) return;
+      this.selectedOpId = this.selectedOpId === id ? null : id;
+      this.refreshSquadDossier();
+      sfx.ui();
+    });
+    document.getElementById('btn-buy-privilege')?.addEventListener('click', () => {
+      this.buyPrivilegeBoost();
+    });
+    this.refreshSquadDossier();
+  }
+
+  private buyPrivilegeBoost() {
+    if (!this.loadout || !this.selectedOpId) return;
+    const roster = loadRoster();
+    const op = roster.operatives.find((o) => o.id === this.selectedOpId);
+    if (!op) return;
+    const level = levelFromXp(op.xp);
+    const cost = privilegeBoostCost(level);
+    const toast = document.getElementById('loadout-toast');
+    if (cost == null) {
+      sfx.miss();
+      if (toast) {
+        toast.textContent = 'MAX PRIVILEGE';
+        toast.classList.remove('hidden');
+        toast.classList.add('err');
+      }
+      return;
+    }
+    if (this.loadout.cred < cost) {
+      sfx.miss();
+      if (toast) {
+        toast.textContent = 'INSUFFICIENT CRED';
+        toast.classList.remove('hidden');
+        toast.classList.add('err');
+      }
+      return;
+    }
+    const needXp = xpToReachLevel(op.xp, level + 1);
+    const nextXp = op.xp + needXp;
+    const newLevel = levelFromXp(nextXp);
+    const newAbilities = abilitiesUnlockedAt(op.classId, newLevel);
+    this.loadout = { ...this.loadout, cred: this.loadout.cred - cost };
+    const updated = {
+      ...roster,
+      operatives: roster.operatives.map((o) =>
+        o.id === op.id ? { ...o, xp: nextXp } : o,
+      ),
+    };
+    saveRoster(updated);
+    this.onLoadoutChanged?.(this.loadout);
+    this.refreshLoadoutShop();
+    this.refreshSquadDossier();
+    sfx.levelUp();
+    const unlock =
+      newAbilities.length > 0
+        ? ` · +${newAbilities.map((a) => ABILITIES[a]?.name ?? a).join(', ')}`
+        : '';
+    if (toast) {
+      toast.textContent = `${op.name} · L${newLevel}${unlock}`;
+      toast.classList.remove('hidden', 'err');
+    }
+    this.showToast(`${op.name} · PRIVILEGE L${newLevel}`, false, 2200);
+  }
+
+  /** Refresh SQUAD tab chips + selected probe dossier. */
+  refreshSquadDossier() {
+    const roster = loadRoster();
+    const loadout = this.loadout;
+
+    // Chip level badges + selection
+    for (const chip of document.querySelectorAll<HTMLButtonElement>('.class-chip[data-op-id]')) {
+      const id = chip.dataset.opId!;
+      const op = roster.operatives.find((o) => o.id === id);
+      const lvl = op ? levelFromXp(op.xp) : 1;
+      const meta = chip.querySelector(`[data-chip-meta="${id}"]`);
+      if (meta) {
+        meta.textContent = op?.wounded ? `L${lvl} · WND` : `L${lvl}`;
+      }
+      chip.classList.toggle('selected', this.selectedOpId === id);
+      chip.classList.toggle('wounded', Boolean(op?.wounded));
+      chip.setAttribute('aria-pressed', this.selectedOpId === id ? 'true' : 'false');
+      if (op) {
+        const role = CLASS_LABEL[op.classId] ?? op.classId;
+        setTip(
+          chip,
+          `${op.name} · ${role} · L${lvl}${op.wounded ? ' · WOUNDED' : ''}\nClick to open probe dossier.`,
+          'below',
+        );
+      }
+    }
+
+    const panel = document.getElementById('probe-dossier');
+    if (!panel) return;
+    if (!this.selectedOpId) {
+      panel.classList.add('hidden');
+      return;
+    }
+    const op = roster.operatives.find((o) => o.id === this.selectedOpId);
+    if (!op) {
+      panel.classList.add('hidden');
+      return;
+    }
+    panel.classList.remove('hidden');
+
+    const level = levelFromXp(op.xp);
+    let def = buildSoldierAtLevel(op.classId, op.id, op.name, level, {
+      gateAbilities: true,
+    });
+    if (op.wounded) def = applyWoundDebuffs(def);
+    if (loadout) def = applyLoadoutToDef(def, loadout);
+
+    const nameEl = document.getElementById('dossier-name');
+    const classEl = document.getElementById('dossier-class');
+    const levelEl = document.getElementById('dossier-level');
+    const woundEl = document.getElementById('dossier-wound');
+    const xpFill = document.getElementById('dossier-xp-fill');
+    const xpText = document.getElementById('dossier-xp-text');
+    const statsEl = document.getElementById('dossier-stats');
+    const abEl = document.getElementById('dossier-abilities');
+    const buyBtn = document.getElementById('btn-buy-privilege') as HTMLButtonElement | null;
+    const buyCost = document.getElementById('dossier-buy-cost');
+    const buyHint = document.getElementById('dossier-buy-hint');
+
+    if (nameEl) nameEl.textContent = op.name;
+    if (classEl) {
+      classEl.textContent = `${CLASS_LABEL[op.classId]} · ${def.weapon.name}`;
+    }
+    if (levelEl) levelEl.textContent = `L${level}`;
+    if (woundEl) woundEl.classList.toggle('hidden', !op.wounded);
+
+    const bar = xpBar(op.xp);
+    if (xpFill) {
+      xpFill.style.width = level >= MAX_LEVEL ? '100%' : `${bar.pct}%`;
+    }
+    if (xpText) {
+      xpText.textContent =
+        level >= MAX_LEVEL ? 'MAX' : `${bar.current}/${bar.need}`;
+    }
+
+    // Healthy baseline for wounded comparison
+    const healthy = buildSoldierAtLevel(op.classId, op.id, op.name, level, {
+      gateAbilities: true,
+    });
+    const healthyLoad = loadout ? applyLoadoutToDef(healthy, loadout) : healthy;
+
+    if (statsEl) {
+      const cyc = 2 + (loadout?.cycle ?? 0);
+      const rows: Array<[string, string, string]> = [
+        ['INT', `${def.maxHp}`, op.wounded ? `full ${healthyLoad.maxHp}` : 'integrity'],
+        ['ACC', `${def.aim}`, op.wounded ? `full ${healthyLoad.aim}` : 'accuracy'],
+        ['SHD', `${def.armor}`, 'shield'],
+        ['MOB', `${def.mobility}`, 'mobility'],
+        ['DMG', `${def.weapon.damageMin}–${def.weapon.damageMax}`, 'payload'],
+        ['RNG', `${def.weapon.range}`, 'range'],
+        ['CYC', `${cyc}`, 'max cycles'],
+        ['DEF', `${def.defense}`, 'defense'],
+      ];
+      statsEl.innerHTML = rows
+        .map(
+          ([k, v, hint]) =>
+            `<div class="dossier-stat"><span class="ds-k">${k}</span><span class="ds-v">${v}</span><span class="ds-h">${hint}</span></div>`,
+        )
+        .join('');
+    }
+
+    if (abEl) {
+      const unlocked = new Set(abilitiesAtLevel(op.classId as PlayerClassId, level));
+      const table = unlockTable(op.classId as PlayerClassId);
+      const levels = Object.keys(table)
+        .map(Number)
+        .sort((a, b) => a - b);
+      const items: string[] = [];
+      for (const lv of levels) {
+        for (const aid of table[lv] ?? []) {
+          if (aid === 'move') continue;
+          const defA = ABILITIES[aid];
+          const on = unlocked.has(aid);
+          items.push(
+            `<div class="dossier-ability${on ? ' on' : ' off'}" title="${defA?.description ?? ''}">` +
+              `<span class="da-name">${defA?.name ?? aid}</span>` +
+              `<span class="da-lv">${on ? 'ONLINE' : `L${lv}`}</span>` +
+              `</div>`,
+          );
+        }
+      }
+      // Always show link.sys as contextual
+      items.push(
+        `<div class="dossier-ability on contextual" title="${ABILITIES.link.description}">` +
+          `<span class="da-name">link.sys</span>` +
+          `<span class="da-lv">PORT</span></div>`,
+      );
+      abEl.innerHTML = items.join('');
+    }
+
+    const cost = privilegeBoostCost(level);
+    const cred = loadout?.cred ?? 0;
+    if (buyBtn) {
+      buyBtn.disabled = cost == null || cred < cost;
+      buyBtn.textContent =
+        cost == null ? 'MAX PRIVILEGE' : `BUY PRIVILEGE → L${level + 1}`;
+    }
+    if (buyCost) {
+      buyCost.textContent =
+        cost == null ? 'MAX' : `${cost} CRED · you have ${cred}`;
+    }
+    if (buyHint) {
+      const nextAbs = cost != null ? abilitiesUnlockedAt(op.classId, level + 1) : [];
+      buyHint.textContent =
+        cost == null
+          ? 'This probe is at max privilege (L6).'
+          : nextAbs.length
+            ? `Next unlock: ${nextAbs.map((a) => ABILITIES[a]?.name ?? a).join(', ')}. Squad gear is bought in Loadout Bay.`
+            : 'Raises stats for this probe. Squad gear is bought in Loadout Bay.';
     }
   }
 
@@ -635,6 +874,7 @@ export class HUD {
       shell.scrollTo({ top: 0, behavior: 'smooth' });
     }
     if (id === 'ops') this.refreshRecordsPanel();
+    if (id === 'squad') this.refreshSquadDossier();
   }
 
   /** Compact deploy line in sticky footer. */
@@ -1350,6 +1590,7 @@ export class HUD {
 
   /** Lobby: show which probes are still wounded from last crash. */
   refreshLobbyWounds() {
+    this.refreshSquadDossier();
     const el = document.getElementById('lobby-wound-strip');
     if (!el) return;
     try {

@@ -315,24 +315,64 @@
                   <span class="section-title">PROBE TEAM</span>
                 </div>
                 <p id="lobby-wound-strip" class="lobby-wound-strip hidden"></p>
-                <div class="class-row">
-                  <div class="class-chip breacher" data-tip="INTRUDER — close-range scatter.payload, strip.sys, cascade.sys. First through the pins." data-tip-pos="below">
+                <div id="class-row" class="class-row" role="listbox" aria-label="Probe team">
+                  <button type="button" class="class-chip breacher" data-op-id="p_breach" aria-pressed="false">
                     <span class="chip-role">INTRUDER</span>
+                    <span class="chip-name">REYES</span>
+                    <span class="chip-meta" data-chip-meta="p_breach">L1</span>
                     <span class="chip-tag">CLOSE</span>
-                  </div>
-                  <div class="class-chip marksman" data-tip="POINTER — long_read.probe, high ACC at range, sandbox.sys. Marks targets from far copper." data-tip-pos="below">
+                  </button>
+                  <button type="button" class="class-chip marksman" data-op-id="p_mark" aria-pressed="false">
                     <span class="chip-role">POINTER</span>
+                    <span class="chip-name">CHEN</span>
+                    <span class="chip-meta" data-chip-meta="p_mark">L1</span>
                     <span class="chip-tag">RANGE</span>
-                  </div>
-                  <div class="class-chip support" data-tip="SYSOP — noise.sys obfuscation and patch.sys restores. Keeps the team linked." data-tip-pos="below">
+                  </button>
+                  <button type="button" class="class-chip support" data-op-id="p_sup" aria-pressed="false">
                     <span class="chip-role">SYSOP</span>
+                    <span class="chip-name">OKAFOR</span>
+                    <span class="chip-meta" data-chip-meta="p_sup">L1</span>
                     <span class="chip-tag">SUPPORT</span>
-                  </div>
-                  <div class="class-chip heavy" data-tip="FLOODER — flood.array, throttle.sys, cascade.sys. Armor and area pressure." data-tip-pos="below">
+                  </button>
+                  <button type="button" class="class-chip heavy" data-op-id="p_heavy" aria-pressed="false">
                     <span class="chip-role">FLOODER</span>
+                    <span class="chip-name">VOLKOV</span>
+                    <span class="chip-meta" data-chip-meta="p_heavy">L1</span>
                     <span class="chip-tag">PRESSURE</span>
-                  </div>
+                  </button>
                 </div>
+
+                <!-- Selected probe dossier -->
+                <div id="probe-dossier" class="probe-dossier holo-panel hidden">
+                  <div class="dossier-head">
+                    <div>
+                      <div id="dossier-name" class="dossier-name">—</div>
+                      <div id="dossier-class" class="dossier-class">—</div>
+                    </div>
+                    <div class="dossier-level-block">
+                      <span id="dossier-level" class="dossier-level">L1</span>
+                      <span id="dossier-wound" class="dossier-wound hidden">WOUNDED</span>
+                    </div>
+                  </div>
+                  <div class="dossier-xp-row">
+                    <span class="dossier-xp-label">XP</span>
+                    <div class="dossier-xp-bar"><i id="dossier-xp-fill"></i></div>
+                    <span id="dossier-xp-text" class="dossier-xp-text">0/80</span>
+                  </div>
+                  <div id="dossier-stats" class="dossier-stats"></div>
+                  <div class="dossier-section-label">EXECUTABLES</div>
+                  <div id="dossier-abilities" class="dossier-abilities"></div>
+                  <div class="dossier-buy-row">
+                    <button type="button" id="btn-buy-privilege" class="btn primary dossier-buy" disabled>
+                      BUY PRIVILEGE +1
+                    </button>
+                    <span id="dossier-buy-cost" class="dossier-buy-cost">—</span>
+                  </div>
+                  <p id="dossier-buy-hint" class="difficulty-blurb ops-action-note">
+                    Spend CRED to raise this probe one privilege level (stats + ability unlocks).
+                  </p>
+                </div>
+
                 <div class="squad-actions">
                   <button type="button" id="btn-reset-squad" class="btn btn-ghost btn-danger-ghost">
                     RESET SQUAD
@@ -353,7 +393,7 @@
                     <span class="loadout-title">SQUAD GEAR</span>
                     <span id="loadout-cred" class="loadout-cred">0 CRED</span>
                   </div>
-                  <p class="loadout-blurb">Spend CRED (earned on debrief) on squad-wide gear. Applies next jack-in.</p>
+                  <p class="loadout-blurb">Squad-wide gear (applies to every probe next jack-in). Select a probe above for personal privilege buys.</p>
                   <div id="loadout-items" class="loadout-items">
                     <button type="button" class="loadout-item" data-upgrade="inject">
                       <span class="lo-name">inject.kit</span>

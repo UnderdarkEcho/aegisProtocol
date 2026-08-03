@@ -1397,24 +1397,32 @@ body,
 .obj-icon.lose { color: var(--danger); }
 
 .class-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   margin-bottom: 0;
+}
+
+@media (min-width: 520px) {
+  .class-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .class-chip {
   font-family: var(--font-display);
   font-size: 0.62rem;
   letter-spacing: 0.14em;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.55rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 10, 12, 0.65);
-  cursor: help;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  min-width: 5.5rem;
+  gap: 0.12rem;
+  min-width: 0;
+  color: inherit;
+  text-align: left;
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s, transform 0.12s;
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 }
@@ -1425,13 +1433,36 @@ body,
   box-shadow: 0 0 14px rgba(0, 255, 200, 0.12);
 }
 
+.class-chip.selected {
+  box-shadow: 0 0 18px rgba(0, 255, 200, 0.22);
+  background: rgba(0, 30, 28, 0.9);
+}
+
+.class-chip.wounded {
+  outline: 1px solid rgba(255, 138, 61, 0.45);
+}
+
 .chip-role {
   letter-spacing: 0.12em;
 }
 
+.chip-name {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+.chip-meta {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+}
+
 .chip-tag {
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.52rem;
   letter-spacing: 0.08em;
   opacity: 0.65;
 }
@@ -1440,6 +1471,217 @@ body,
 .class-chip.marksman { border-color: rgba(61, 224, 255, 0.5); color: var(--cyan); }
 .class-chip.support { border-color: rgba(77, 255, 154, 0.45); color: var(--ok); }
 .class-chip.heavy { border-color: rgba(255, 193, 74, 0.5); color: var(--amber); }
+
+.class-chip.breacher.selected { border-color: var(--orange); }
+.class-chip.marksman.selected { border-color: var(--cyan); }
+.class-chip.support.selected { border-color: var(--ok); }
+.class-chip.heavy.selected { border-color: var(--amber); }
+
+/* Probe dossier (SQUAD tab) */
+.probe-dossier {
+  margin-top: 0.65rem;
+  padding: 0.75rem 0.8rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.probe-dossier.hidden {
+  display: none !important;
+}
+
+.dossier-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.dossier-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  color: #e8fff8;
+}
+
+.dossier-class {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.dossier-level-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.dossier-level {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(255, 193, 74, 0.35);
+  background: rgba(255, 193, 74, 0.08);
+}
+
+.dossier-wound {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  color: var(--orange);
+}
+
+.dossier-wound.hidden {
+  display: none !important;
+}
+
+.dossier-xp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.dossier-xp-label {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+}
+
+.dossier-xp-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.dossier-xp-bar > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan-dim), var(--amber));
+  transition: width 0.25s ease;
+}
+
+.dossier-xp-text {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: var(--muted);
+  min-width: 3.2rem;
+  text-align: right;
+}
+
+.dossier-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.dossier-stat {
+  padding: 0.35rem 0.35rem 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.dossier-stat .ds-k {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+}
+
+.dossier-stat .ds-v {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-top: 0.1rem;
+}
+
+.dossier-stat .ds-h {
+  display: block;
+  font-size: 0.48rem;
+  color: var(--muted);
+  margin-top: 0.08rem;
+}
+
+.dossier-section-label {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.16em;
+  color: rgba(0, 255, 200, 0.7);
+}
+
+.dossier-abilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.dossier-ability {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid rgba(0, 255, 200, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+}
+
+.dossier-ability.on {
+  border-color: rgba(0, 255, 200, 0.35);
+  color: var(--ok);
+}
+
+.dossier-ability.off {
+  opacity: 0.55;
+  color: var(--muted);
+}
+
+.dossier-ability.contextual {
+  border-color: rgba(61, 224, 255, 0.35);
+  color: var(--cyan);
+}
+
+.dossier-ability .da-lv {
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.dossier-buy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.dossier-buy {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.1em !important;
+  padding: 0.55rem 0.75rem !important;
+}
+
+.dossier-buy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dossier-buy-cost {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--amber);
+  letter-spacing: 0.06em;
+}
 
 .menu-config {
   display: grid;

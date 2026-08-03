@@ -201,6 +201,29 @@ export function abilitiesUnlockedAt(classId: PlayerClassId, level: number): Abil
   return [...(UNLOCKS[classId][level] ?? [])];
 }
 
+/** Full unlock table for lobby dossier (level → ability ids). */
+export function unlockTable(classId: PlayerClassId): Partial<Record<number, AbilityId[]>> {
+  return UNLOCKS[classId];
+}
+
+/**
+ * CRED cost to buy the next privilege level in the squad bay.
+ * null if already maxed.
+ */
+export function privilegeBoostCost(level: number): number | null {
+  if (level < 1 || level >= MAX_LEVEL) return null;
+  return 80 + level * 35;
+}
+
+/**
+ * Spend CRED to advance one operative to the next level (grants exact XP needed).
+ * Returns updated roster XP; caller updates loadout cred.
+ */
+export function xpToReachLevel(fromXp: number, targetLevel: number): number {
+  const need = totalXpForLevel(targetLevel);
+  return Math.max(0, need - sanitizeXp(fromXp));
+}
+
 /**
  * Build a soldier def at a given privilege level.
  * @param gateAbilities when false, keep full class kit (tests / unconstrained).
