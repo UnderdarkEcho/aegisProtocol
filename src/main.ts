@@ -14,7 +14,7 @@ import { getDifficulty } from './sim/difficulty';
 import { Game } from './sim/game';
 import { keyOf } from './sim/grid';
 import type { LoadoutState } from './sim/loadout';
-import { loadLoadout, saveLoadout } from './sim/loadoutStore';
+import { loadLoadout, resetLoadout, saveLoadout } from './sim/loadoutStore';
 import { applyPostMissionWounds, rosterFromUnits } from './sim/progression';
 import { loadRoster, resetRoster, saveRoster } from './sim/roster';
 import type { DifficultyId } from './sim/types';
@@ -125,15 +125,23 @@ function handlers() {
     onResetSquad: () => {
       if (
         !window.confirm(
-          'Reset squad to L1?\n\nAll privilege XP and wound flags are wiped.\nAbility unlocks return to the starter kit.\nLoadout CRED is kept.',
+          'Reset squad completely?\n\n' +
+            '• All probes return to L1 (0 XP)\n' +
+            '• Ability unlocks back to starter kit\n' +
+            '• Wound flags cleared\n' +
+            '• Loadout upgrades removed (inject / armor / cycle)\n' +
+            '• CRED bank wiped to 0\n\n' +
+            'This cannot be undone.',
         )
       ) {
         return;
       }
       roster = resetRoster();
+      loadout = resetLoadout();
+      hud.setLoadout(loadout);
       hud.refreshLobbyWounds();
       sfx.ui();
-      hud.showToast('SQUAD RESET · L1 · STARTER KIT', false, 2600);
+      hud.showToast('SQUAD RESET · L1 · NO GEAR · 0 CRED', false, 2800);
     },
   };
 }

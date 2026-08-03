@@ -1,6 +1,6 @@
 # Aegis Protocol
 
-**v0.9.0 · public beta · fully open source (MIT)**
+**v0.9.1 · public beta · fully open source (MIT)**
 
 A browser turn-based tactics mini-game: jack a four-probe team onto a contested corporate die and either **wipe hostile processes** or **channel the north data port**. Three.js + TypeScript. XCOM-shaped tactics with a proto-cyberpunk skin.
 
@@ -139,7 +139,7 @@ Attribution appreciated but not required: *Aegis Protocol* by UnderdarkEcho.
 
 ## Status
 
-**0.9.0 public beta.** Vertical slice is playable end-to-end (campaign, skirmish, progression, audio, polish). Expect rough edges: AI can still be dense, content is three maps, and the “outer sim” this mini-game plugs into is not in this repo.
+**0.9.1 public beta.** Vertical slice is playable end-to-end (campaign, skirmish, progression, audio, polish). Expect rough edges: AI can still be dense, content is three maps, and the “outer sim” this mini-game plugs into is not in this repo.
 
 Issues and PRs welcome.
 
@@ -148,4 +148,4 @@ Issues and PRs welcome.
 ## Repo
 
 - GitHub: [github.com/UnderdarkEcho/aegisProtocol](https://github.com/UnderdarkEcho/aegisProtocol)
-- Version: **0.9.0-beta**
+- Version: **0.9.1-beta**

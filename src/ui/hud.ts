@@ -420,7 +420,7 @@ export class HUD {
     if (this.els.btnResetSquad) {
       setTip(
         this.els.btnResetSquad,
-        'Wipe all probe XP and wounds.\nReturns every operative to L1 starter kit.\nLoadout CRED is kept.',
+        'Full squad wipe (with confirm):\n• L1 / 0 XP, starter abilities\n• Clear wounds\n• Remove all loadout upgrades\n• CRED → 0',
         'below',
       );
     }

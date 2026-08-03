@@ -1,8 +1,8 @@
 {
   "name": "aegis-protocol",
   "private": false,
-  "version": "0.9.0",
-  "description": "Aegis Protocol — proto-cyberpunk turn-based tactics mini-game (Three.js + TypeScript). Public beta 0.9.",
+  "version": "0.9.1",
+  "description": "Aegis Protocol — proto-cyberpunk turn-based tactics mini-game (Three.js + TypeScript). Public beta 0.9.1.",
   "type": "module",
   "license": "MIT",
   "author": "UnderdarkEcho",
