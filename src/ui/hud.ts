@@ -6,6 +6,7 @@ import {
 } from '../audio/music';
 import { sfx } from '../audio/sfx';
 import { ABILITIES, CLASS_LABEL } from '../content/classes';
+import { CREDITS } from '../content/credits';
 import { getMapInfo, MAPS, type MapId } from '../content/map';
 import {
   campaignProgressLabel,
@@ -306,6 +307,7 @@ export class HUD {
     this.wireMusicControls();
     this.wireRecords();
     this.wireSquadDossier();
+    this.wireCredits();
     // Keep briefing selection in sync with mission (e.g. after redeploy)
     if (game.state.difficulty) {
       this.setDifficulty(game.state.difficulty);
@@ -408,6 +410,28 @@ export class HUD {
       toast.textContent = 'patch.bay · ALL WOUNDS CLEARED';
       toast.classList.remove('hidden', 'err');
     }
+  }
+
+  private wireCredits() {
+    const handle = document.getElementById('credits-handle') as HTMLAnchorElement | null;
+    const donate = document.getElementById('credits-donate-link') as HTMLAnchorElement | null;
+    const qrLink = document.getElementById('credits-qr-link') as HTMLAnchorElement | null;
+    const qr = document.getElementById('credits-qr') as HTMLImageElement | null;
+    const blurb = document.getElementById('credits-blurb');
+    if (handle) {
+      handle.href = CREDITS.profileUrl;
+      handle.textContent = CREDITS.handle;
+    }
+    if (donate) donate.href = CREDITS.donateUrl;
+    if (qrLink) {
+      qrLink.href = CREDITS.donateUrl;
+      qrLink.title = `Scan or tap to open ${CREDITS.handle} on X`;
+    }
+    if (qr) {
+      qr.src = CREDITS.qrImage;
+      qr.alt = `QR code to tip ${CREDITS.handle} on X`;
+    }
+    if (blurb) blurb.textContent = CREDITS.blurb;
   }
 
   private wireSquadDossier() {

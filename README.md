@@ -132,11 +132,24 @@ Rough order-of-magnitude if you *were* metering API-class rates on multi-million
 
 ---
 
+## Credits & support
+
+Created by **[@RichGarrick](https://x.com/RichGarrick)**.
+
+The in-game **SETTINGS → CREDITS · SUPPORT** panel shows a QR code that opens the same X profile (tip / pay via **X Money** when available). To point the QR at a dedicated X Money receive link later:
+
+1. Set `donateUrl` in `src/content/credits.ts`
+2. Regenerate the image:
+
+```bash
+npx qrcode -o public/donate-qr.png -w 220 "https://your-x-money-or-profile-url"
+```
+
 ## License
 
 **MIT** — free to use, fork, mod, ship, and learn from. See [LICENSE](./LICENSE).
 
-Attribution appreciated but not required: *Aegis Protocol* by UnderdarkEcho.
+Attribution appreciated but not required: *Aegis Protocol* by @RichGarrick / UnderdarkEcho.
 
 ---
 
