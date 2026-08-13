@@ -50,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL. Enter the deck. Configure **OPS / SQUAD / SETTINGS**, then **JACK IN**.
+Open the local URL. Enter the deck. New operators: pick **TUTORIAL**. Configure **OPS / SQUAD / SETTINGS**, then **JACK IN**.
 
 | Input | Action |
 |---|---|
@@ -67,6 +67,7 @@ Open the local URL. Enter the deck. Configure **OPS / SQUAD / SETTINGS**, then *
 
 ### Features (0.9.3 beta)
 
+- Guided **TUTORIAL** (practice die, coach tips, no XP / records)
 - Campaign arcs: **Standard (3 ops)** or **Extended (10 ops)** + Vesper branching
 - Free skirmish (map / objective / ICE pick)
 - ICE hardness: Sandbox → Live Net → Black Ice → **Void Ice** (extreme)

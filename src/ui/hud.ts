@@ -326,18 +326,21 @@ export class HUD {
     this.wireRecords();
     this.wireSquadDossier();
     this.wireCredits();
-    // Keep briefing selection in sync with mission (e.g. after redeploy)
-    if (game.state.difficulty) {
-      this.setDifficulty(game.state.difficulty);
-    }
+    // Keep briefing selection in sync with mission (e.g. after redeploy).
+    // Tutorial uses a fixed easy die — don't overwrite lobby ICE / map / objective.
     if (game.state.playMode) {
       this.setPlayMode(game.state.playMode);
     }
-    if (game.state.mapId && game.state.mapId in MAPS) {
-      this.setMapId(game.state.mapId as MapId);
-    }
-    if (game.state.missionType) {
-      this.setMissionType(game.state.missionType);
+    if (game.state.playMode !== 'tutorial') {
+      if (game.state.difficulty) {
+        this.setDifficulty(game.state.difficulty);
+      }
+      if (game.state.mapId && game.state.mapId in MAPS) {
+        this.setMapId(game.state.mapId as MapId);
+      }
+      if (game.state.missionType) {
+        this.setMissionType(game.state.missionType);
+      }
     }
     this.refreshCampaignUI();
     this.refreshLoadoutShop();
@@ -961,7 +964,10 @@ export class HUD {
     } else if (this.playMode === 'tutorial') {
       extra = ' · PRACTICE';
     }
-    el.textContent = `${mode} · ${map} · ${diff}${extra}`;
+    el.textContent =
+      this.playMode === 'tutorial'
+        ? `${mode} · ${diff}${extra}`
+        : `${mode} · ${map} · ${diff}${extra}`;
   }
 
   private wirePlayMode() {
@@ -1052,6 +1058,9 @@ export class HUD {
     this.els.campaignPanel?.classList.toggle('hidden', !campaign);
     document.getElementById('campaign-track-row')?.classList.toggle('hidden', !campaign);
     this.els.tutorialPanel?.classList.toggle('hidden', !tutorial);
+    document.getElementById('mode-hint')?.classList.toggle('hidden', tutorial);
+    document.getElementById('difficulty-section')?.classList.toggle('hidden', tutorial);
+    document.querySelector('.ops-campaign-actions')?.classList.toggle('hidden', tutorial);
     // Map picker only in skirmish; campaign locks map; tutorial uses fixed die
     this.els.mapRow.classList.toggle('hidden', campaign || tutorial);
     this.els.campaignMapLock?.classList.toggle('hidden', !campaign);
@@ -1072,9 +1081,9 @@ export class HUD {
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
 
-    // Campaign reset always available (OPS + footer)
-    this.els.btnNewCampaign?.classList.remove('hidden');
-    this.els.btnResetCampaign?.classList.remove('hidden');
+    // Campaign reset stays on campaign/skirmish; hide on tutorial
+    this.els.btnNewCampaign?.classList.toggle('hidden', tutorial);
+    this.els.btnResetCampaign?.classList.toggle('hidden', tutorial);
     this.refreshCampaignResetLabels();
 
     const deploySub = this.els.btnDeploy.querySelector('.btn-jack-sub');
@@ -1684,11 +1693,13 @@ export class HUD {
         .sort((a, b) => a.id.localeCompare(b.id));
       for (const u of players) {
         const row = document.createElement('div');
-        const willWound = !u.alive;
+        const willWound = !u.alive && this.playMode !== 'tutorial';
         row.className =
           'debrief-row' + (u.alive ? '' : ' dead') + (u.wounded && u.alive ? ' was-wounded' : '');
         const status = !u.alive
-          ? 'CRASH → WOUNDED'
+          ? willWound
+            ? 'CRASH → WOUNDED'
+            : 'CRASH'
           : u.wounded
             ? 'HEALED'
             : 'STABLE';
@@ -1709,7 +1720,11 @@ export class HUD {
       );
       const credLine =
         credEarned > 0 ? ` · +${credEarned} CRED banked` : '';
-      if (crashed.length === 0) {
+      if (this.playMode === 'tutorial') {
+        woundsEl.textContent =
+          'Tutorial is practice — no wound flags, XP, CRED, or RECORDS.';
+        woundsEl.classList.remove('warn');
+      } else if (crashed.length === 0) {
         woundsEl.textContent =
           `All probes stable. No wound flags for the next breach.${credLine}`;
         woundsEl.classList.remove('warn');

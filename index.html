@@ -170,7 +170,7 @@
             <button type="button" class="menu-tab active" role="tab" data-tab="ops" aria-selected="true" aria-controls="tab-ops" id="tab-btn-ops">
               <span class="tab-key">01</span>
               <span class="tab-label">OPS</span>
-              <span class="tab-sub">arc · node · ice · records</span>
+              <span class="tab-sub">tutorial · arc · ice · records</span>
             </button>
             <button type="button" class="menu-tab" role="tab" data-tab="squad" aria-selected="false" aria-controls="tab-squad" id="tab-btn-squad">
               <span class="tab-key">02</span>
@@ -209,13 +209,16 @@
                     <span class="diff-desc">Learn the breach</span>
                   </button>
                 </div>
+                <p id="mode-hint" class="difficulty-blurb mode-hint">
+                  New to the breach? TUTORIAL is a guided practice die — no XP, CRED, or RECORDS.
+                </p>
                 <div id="tutorial-panel" class="tutorial-panel holo-panel hidden">
                   <div class="tutorial-panel-head">
                     <span class="lock-label">GUIDED FIRST BREACH</span>
                     <span class="tutorial-panel-tag">PRACTICE · NO XP</span>
                   </div>
                   <p id="tutorial-panel-blurb" class="difficulty-blurb">
-                    Easy die · one weak pod · coach tips during the run. Move, shoot, end cycle, seize the north data port
+                    Easy die · one weak pod · coach tips during the run. Move, inject, end cycle, seize the north data port
                     (link.sys + 1 hold). Completing it does not bank XP, CRED, or RECORDS.
                   </p>
                 </div>
@@ -302,7 +305,7 @@
                 </p>
               </section>
 
-              <section class="menu-section deck-module">
+              <section class="menu-section deck-module" id="difficulty-section">
                 <div class="section-head">
                   <span class="section-num">03</span>
                   <span class="section-title">ICE HARDNESS</span>
@@ -678,7 +681,7 @@
           </div>
           <div id="coach-title" class="coach-title">SELECT A PROBE</div>
           <p id="coach-body" class="coach-body">
-            Click a squad chip or a unit on the die. Green tiles show MOVE range.
+            Click a squad chip or a unit on the die. Green tiles show MOVE range for the selected probe.
           </p>
           <div class="coach-actions">
             <button type="button" id="coach-next" class="btn btn-ghost coach-next">NEXT TIP</button>

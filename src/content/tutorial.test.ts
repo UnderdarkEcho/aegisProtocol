@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createMission } from './map';
 import {
   advanceTutorStep,
   getTutorStep,
@@ -38,5 +39,24 @@ describe('tutorial coach', () => {
     expect(advanceTutorStep('welcome', ev('missionEnd', { result: 'victory' }))).toBe(
       'done',
     );
+  });
+
+  it('coach copy uses process verbs, not SHOOT or human names', () => {
+    const blob = TUTORIAL_STEPS.map((s) => `${s.title} ${s.body}`).join(' ');
+    expect(blob).not.toMatch(/SHOOT|REYES|CHEN|OKAFOR|VOLKOV/i);
+    expect(blob).toMatch(/inject\.bin/i);
+  });
+});
+
+describe('tutorial mission', () => {
+  it('deploys a one-hold practice die with process callsigns', () => {
+    const m = createMission(1, 'easy', { mapId: 'tutorial', playMode: 'tutorial' });
+    expect(m.playMode).toBe('tutorial');
+    expect(m.mapId).toBe('tutorial');
+    expect(m.portLinkRequired).toBe(1);
+    expect(m.units.get('p_breach')!.def.name).toBe('WEDGE');
+    expect(m.units.get('p_mark')!.def.name).toBe('SEEK');
+    expect(m.units.get('p_sup')!.def.name).toBe('PATCHD');
+    expect(m.units.get('p_heavy')!.def.name).toBe('FLOOD');
   });
 });

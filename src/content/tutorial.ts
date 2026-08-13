@@ -30,7 +30,7 @@ export const TUTORIAL_STEPS: readonly TutorStep[] = [
     id: 'shoot',
     indexLabel: '3/6',
     title: 'INJECT HOSTILES',
-    body: 'When a hostile is in line of sight, pick SHOOT then click the target. Aim % shows before you fire.',
+    body: 'When a hostile is in line of sight, pick inject.bin then click the target. Aim % shows before you fire.',
   },
   {
     id: 'endturn',
