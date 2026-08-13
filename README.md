@@ -1,6 +1,6 @@
 # Aegis Protocol
 
-**v0.9.3 · public beta · fully open source (MIT)**
+**v0.9.3 · public beta · fully open source (GPL-3.0)**
 
 A browser turn-based tactics mini-game: jack a four-probe team onto a contested corporate die and either **wipe hostile processes** or **channel the north data port**. Three.js + TypeScript. XCOM-shaped tactics with a proto-cyberpunk skin.
 
@@ -143,9 +143,13 @@ Config lives in `src/content/credits.ts` (`handle`, profile link, QR image path)
 
 ## License
 
-**MIT** — free to use, fork, mod, ship, and learn from. See [LICENSE](./LICENSE).
+Copyright (C) 2026 UnderdarkEcho / Richard Garrick
 
-Attribution appreciated but not required: *Aegis Protocol* by @RichGarrick / UnderdarkEcho.
+**GPL-3.0-only** — keep it free, keep the credit. See [LICENSE](./LICENSE).
+
+You may play, fork, and ship modified versions, but they must stay under GPL-3.0 and keep the copyright notice. Proprietary closed-source forks are not allowed.
+
+This GitHub repo’s `main` branch is owner-write only. Forks are fine; opening a PR does not change these files until I merge it.
 
 ---
 
