@@ -136,14 +136,9 @@ Rough order-of-magnitude if you *were* metering API-class rates on multi-million
 
 Created by **[@RichGarrick](https://x.com/RichGarrick)**.
 
-The in-game **SETTINGS → CREDITS · SUPPORT** panel shows a QR code that opens the same X profile (tip / pay via **X Money** when available). To point the QR at a dedicated X Money receive link later:
+The cyberdeck menu shows a tip banner under the title with your **X Money QR** (`public/QRCodeX.png`). Scan it to open the send-money flow, or tap **OPEN @RICHGARRICK ON X**.
 
-1. Set `donateUrl` in `src/content/credits.ts`
-2. Regenerate the image:
-
-```bash
-npx qrcode -o public/donate-qr.png -w 220 "https://your-x-money-or-profile-url"
-```
+Config lives in `src/content/credits.ts` (`handle`, profile link, QR image path).
 
 ## License
 
