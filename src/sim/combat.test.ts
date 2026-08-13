@@ -229,6 +229,24 @@ describe('pod activation via Game API', () => {
     expect(acting).toEqual(['e_drone1', 'e_pmc1', 'e_pmc2']);
   });
 
+  it('wakes at most one sleeping pod per check', () => {
+    const game = new Game(createMission(1));
+    game.startMission();
+    const a = game.state.pods.get('podA')!;
+    const b = game.state.pods.get('podB')!;
+    game.state.visibleEnemyIds.add(a.memberIds[0]!);
+    game.state.visibleEnemyIds.add(b.memberIds[0]!);
+    game.checkPodActivation();
+    const wokeOnce = [...game.state.pods.values()].filter((p) => p.activated);
+    expect(wokeOnce).toHaveLength(1);
+    // refreshVision during scamper clears fake LOS — re-tag the still-sleeping pod
+    game.state.visibleEnemyIds.add(a.memberIds[0]!);
+    game.state.visibleEnemyIds.add(b.memberIds[0]!);
+    game.checkPodActivation();
+    const wokeTwice = [...game.state.pods.values()].filter((p) => p.activated);
+    expect(wokeTwice).toHaveLength(2);
+  });
+
   it('rejects enemy actions for inactive units', () => {
     const state = createMission(1);
     const game = new Game(state);

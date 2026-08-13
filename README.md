@@ -45,6 +45,8 @@ Tone: dirty firmware, edge connectors, amber CRT honesty. The outer game this mi
 
 ## Play
 
+**Browser:** [underdarkecho.github.io/aegisProtocol](https://underdarkecho.github.io/aegisProtocol/)
+
 ```bash
 npm install
 npm run dev
@@ -64,12 +66,13 @@ Open the local URL. Enter the deck. New operators: pick **TUTORIAL**. Configure 
 | Alt+drag / MMB / RMB drag | Orbit |
 | Scroll | Zoom |
 | Esc | Cancel targeting |
+| ABORT | Drop the breach and return to lobby (no XP / wounds / CRED) |
 
 ### Features (0.9.3 beta)
 
 - Guided **TUTORIAL** (practice die, coach tips, no XP / records)
 - Campaign arcs: **Standard (3 ops)** or **Extended (10 ops)** + Vesper branching
-- Free skirmish (map / objective / ICE pick)
+- Free skirmish (PIN PAD / VESPER / **TRACE CUT** / KERNEL)
 - ICE hardness: Sandbox → Live Net → Black Ice → **Void Ice** (extreme)
 - Local **RECORDS** leaderboard (skirmish + campaign personal bests)
 - Cover, flanks, FOW, pod activation, overwatch, grenades, smoke, heal

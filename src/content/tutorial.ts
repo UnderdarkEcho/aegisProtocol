@@ -112,3 +112,21 @@ export function advanceTutorStep(
 export function getTutorStep(id: string): TutorStep {
   return TUTORIAL_STEPS[tutorStepIndex(id)] ?? TUTORIAL_STEPS[0]!;
 }
+
+const TUTORIAL_DONE_KEY = 'aegis.tutorial.done.v1';
+
+export function hasCompletedTutorial(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markTutorialDone(): void {
+  try {
+    localStorage.setItem(TUTORIAL_DONE_KEY, '1');
+  } catch {
+    // private mode / quota
+  }
+}

@@ -13,6 +13,8 @@ import {
   advanceTutorStep,
   getTutorStep,
   TUTORIAL_STEPS,
+  hasCompletedTutorial,
+  markTutorialDone,
 } from '../content/tutorial';
 import {
   campaignProgressLabel,
@@ -280,6 +282,7 @@ export class HUD {
         stats: ReturnType<typeof collectMissionStats>;
       }) => void;
       onCampaignTrackChange?: (track: CampaignTrack) => void;
+      onAbort?: () => void;
     },
   ) {
     this.game = game;
@@ -301,6 +304,8 @@ export class HUD {
     this.els.btnDeploy.onclick = () => handlers.onDeploy();
     this.els.btnRestart.onclick = () => handlers.onRestart();
     this.els.btnEnd.onclick = () => handlers.onEndTurn();
+    const abortBtn = document.getElementById('btn-abort') as HTMLButtonElement | null;
+    if (abortBtn) abortBtn.onclick = () => handlers.onAbort?.();
     if (this.els.btnContinue) {
       this.els.btnContinue.onclick = () => this.onContinue?.();
     }
@@ -737,6 +742,14 @@ export class HUD {
       this.els.btnEnd,
       'End your cycle.\nHostile processes act next — they inject, path, and cascade.',
     );
+    const abortBtn = document.getElementById('btn-abort');
+    if (abortBtn) {
+      setTip(
+        abortBtn,
+        'Abort this breach and return to the lobby.\nXP, wounds, and CRED from this run are not kept.',
+        'below',
+      );
+    }
     if (this.els.btnContinue) {
       setTip(this.els.btnContinue, 'Continue campaign flow — next op, retry, or new campaign.', 'below');
     }
@@ -1058,7 +1071,9 @@ export class HUD {
     this.els.campaignPanel?.classList.toggle('hidden', !campaign);
     document.getElementById('campaign-track-row')?.classList.toggle('hidden', !campaign);
     this.els.tutorialPanel?.classList.toggle('hidden', !tutorial);
-    document.getElementById('mode-hint')?.classList.toggle('hidden', tutorial);
+    document
+      .getElementById('mode-hint')
+      ?.classList.toggle('hidden', tutorial || hasCompletedTutorial());
     document.getElementById('difficulty-section')?.classList.toggle('hidden', tutorial);
     document.querySelector('.ops-campaign-actions')?.classList.toggle('hidden', tutorial);
     // Map picker only in skirmish; campaign locks map; tutorial uses fixed die
@@ -2272,6 +2287,10 @@ export class HUD {
       const reason = String(e.payload.reason ?? '');
       // Tutorial or debug/cheats → practice: no XP bank, no CRED, no RECORDS
       const practice = this.isPracticeRun();
+      if (victory && this.playMode === 'tutorial') {
+        markTutorialDone();
+        this.setPlayMode('campaign');
+      }
 
       // Mission bonus XP once, then persist roster + wound flags
       if (!this.missionXpAwarded && this.game) {

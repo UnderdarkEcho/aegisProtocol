@@ -812,6 +812,8 @@ export class Game {
         }
       }
       this.refreshVision();
+      // One new cluster per check — next action can wake the next
+      return;
     }
   }
 

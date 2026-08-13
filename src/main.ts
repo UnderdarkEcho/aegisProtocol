@@ -111,6 +111,7 @@ function handlers() {
   return {
     onDeploy: () => deploy(),
     onRestart: () => restart(),
+    onAbort: () => abortToLobby(),
     onEndTurn: () => {
       void endTurn();
     },
@@ -366,11 +367,26 @@ function deploy() {
   }
 }
 
+function abortToLobby() {
+  if (game.isMissionOver()) return;
+  if (
+    !window.confirm(
+      'Drop this breach and return to the lobby?\n\n' +
+        'XP, wounds, and CRED from this run will not be kept.',
+    )
+  ) {
+    return;
+  }
+  restoreRosterXpFromSnapshot();
+  restart();
+  hud.showToast('BREACH ABORTED · LOBBY', false, 2200);
+}
+
 function restart() {
   busy = false;
   aimedId = null;
-  // Leaving a debug-tainted or tutorial breach mid-run: roll XP back to jack-in
-  if (game.debugTainted || game.state.playMode === 'tutorial') {
+  // Leaving mid-run (abort / tutorial / debug): roll XP back to jack-in
+  if (game.debugTainted || game.state.playMode === 'tutorial' || !game.isMissionOver()) {
     restoreRosterXpFromSnapshot();
   }
   const playMode = hud.getPlayMode();

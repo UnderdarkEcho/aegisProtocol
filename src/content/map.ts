@@ -28,7 +28,7 @@ import { makeEnemy, makeSoldier, scaleEnemyForDifficulty } from './classes';
 
 // ── Map catalog ───────────────────────────────────────────
 
-export type MapId = 'training' | 'vesper' | 'kernel' | 'tutorial';
+export type MapId = 'training' | 'vesper' | 'kernel' | 'tutorial' | 'trace';
 
 export interface MapInfo {
   id: MapId;
@@ -70,10 +70,17 @@ export const MAPS: Record<MapId, MapInfo> = {
     blurb: 'Deep stack maze — dual guards, long corridor. Port needs link.sys + 2 holds.',
     complexity: 3,
   },
+  trace: {
+    id: 'trace',
+    name: 'TRACE CUT',
+    short: 'TRACE',
+    blurb: 'East–west copper bus. Port is on the west edge — link.sys + 2 holds.',
+    complexity: 2,
+  },
 };
 
 /** Skirmish picker order (tutorial map is play-mode only). */
-export const MAP_ORDER: MapId[] = ['training', 'vesper', 'kernel'];
+export const MAP_ORDER: MapId[] = ['training', 'vesper', 'trace', 'kernel'];
 
 export function getMapInfo(id: MapId): MapInfo {
   return MAPS[id] ?? MAPS.vesper;
@@ -88,6 +95,7 @@ export function defaultTurnLimit(mapId: MapId): number {
     case 'kernel':
       return 16;
     case 'vesper':
+    case 'trace':
     default:
       return 12;
   }
@@ -379,6 +387,102 @@ function buildTutorial(difficulty: DifficultyId): LayoutResult {
     units,
     pods,
     pickupCount: 2,
+  };
+}
+
+/**
+ * East–west copper bus. Spawn east, data port on the west edge (not north).
+ * Skirmish-only — not used by campaign ops.
+ */
+function buildTrace(difficulty: DifficultyId): LayoutResult {
+  const W = 24;
+  const H = 14;
+  const tiles = createEmptyTiles(W, H);
+  perimeter(tiles, W, H);
+
+  // North rack + hollow alcove
+  blockRect(tiles, 4, 1, 18, 4);
+  openInterior(tiles, 9, 1, 13, 3);
+  openDoor(tiles, 11, 4);
+
+  // South rack
+  blockRect(tiles, 5, 10, 19, 12);
+  openInterior(tiles, 8, 10, 12, 11);
+  openDoor(tiles, 10, 10);
+
+  // West hood around the side port
+  blockRect(tiles, 1, 3, 3, 4);
+  blockRect(tiles, 1, 9, 3, 10);
+
+  const props = new Map<string, CoverProp>();
+  const add = (p: CoverProp) => props.set(p.id, p);
+  add(prop('tr1', 8, 6, 1, 'crate'));
+  add(prop('tr2', 10, 8, 1, 'sandbag'));
+  add(prop('tr3', 14, 5, 1, 'crate'));
+  add(prop('tr4', 16, 7, 2, 'barrier'));
+  add(prop('tr5', 6, 8, 1, 'sandbag'));
+  add(prop('tr6', 18, 6, 1, 'crate'));
+  add(prop('tr7', 7, 5, 1, 'crate'));
+  add(prop('tr8', 12, 8, 1, 'sandbag'));
+  rebuildCoverEdges(tiles, props);
+
+  const extractTiles: Vec2[] = [
+    { x: 19, y: 7 },
+    { x: 20, y: 7 },
+    { x: 19, y: 8 },
+    { x: 20, y: 8 },
+  ];
+  const dataPortTiles: Vec2[] = [
+    { x: 1, y: 6 },
+    { x: 2, y: 6 },
+    { x: 1, y: 7 },
+    { x: 2, y: 7 },
+  ];
+  clearPortTiles(tiles, props, dataPortTiles);
+  rebuildCoverEdges(tiles, props);
+
+  const units = new Map<string, UnitState>();
+  const pods = new Map<string, Pod>();
+  placeEnemies(units, pods, difficulty, [
+    {
+      id: 'podA',
+      members: [
+        { kind: 'pmc', id: 'e_pmc1', name: 'WARDEN-01', pos: { x: 11, y: 6 }, podId: 'podA' },
+        { kind: 'pmc', id: 'e_pmc2', name: 'WARDEN-02', pos: { x: 13, y: 7 }, podId: 'podA' },
+        { kind: 'drone', id: 'e_drone1', name: 'SCRAPE-A', pos: { x: 12, y: 6 }, podId: 'podA' },
+      ],
+    },
+    {
+      id: 'podB',
+      members: [
+        { kind: 'drone', id: 'e_drone2', name: 'SCRAPE-B', pos: { x: 11, y: 2 }, podId: 'podB' },
+      ],
+    },
+    {
+      id: 'podC',
+      members: [
+        { kind: 'pmc', id: 'e_pmc3', name: 'WARDEN-03', pos: { x: 4, y: 6 }, podId: 'podC' },
+        { kind: 'drone', id: 'e_drone3', name: 'SCRAPE-C', pos: { x: 3, y: 7 }, podId: 'podC' },
+      ],
+    },
+  ]);
+
+  return {
+    width: W,
+    height: H,
+    tiles,
+    props,
+    units,
+    pods,
+    extractTiles,
+    dataPortTiles,
+    squadSpawns: [
+      { x: 19, y: 7 },
+      { x: 20, y: 8 },
+      { x: 19, y: 8 },
+      { x: 20, y: 7 },
+    ],
+    pickupCount: 4,
   };
 }
 
@@ -741,6 +845,8 @@ function buildLayout(
       return buildTraining(difficulty);
     case 'tutorial':
       return buildTutorial(difficulty);
+    case 'trace':
+      return buildTrace(difficulty);
     case 'kernel':
       return buildKernel(difficulty, kernelBranch);
     case 'vesper':

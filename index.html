@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aegis Protocol // Breach Mini-Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -156,7 +156,7 @@
                 <img
                   id="credits-qr"
                   class="credits-qr"
-                  src="/QRCodeX.png"
+                  src="./QRCodeX.png"
                   width="128"
                   height="128"
                   alt="QR code to tip @RichGarrick via X Money"
@@ -268,6 +268,10 @@
                   <button type="button" class="diff-btn map-btn active" data-map="vesper" aria-pressed="true">
                     <span class="diff-name">VESPER</span>
                     <span class="diff-desc">Standard · 3 pods</span>
+                  </button>
+                  <button type="button" class="diff-btn map-btn" data-map="trace" aria-pressed="false">
+                    <span class="diff-name">TRACE</span>
+                    <span class="diff-desc">West port · 3 pods</span>
                   </button>
                   <button type="button" class="diff-btn map-btn" data-map="kernel" aria-pressed="false">
                     <span class="diff-name">KERNEL</span>
@@ -600,18 +604,30 @@
             <div id="turn-banner" class="turn-banner">YOUR CYCLE</div>
             <div id="objective-strip" class="objective-strip">HOSTILES REMAINING: —</div>
           </div>
-          <button
-            type="button"
-            id="btn-music-toggle"
-            class="music-hud-btn"
-            aria-pressed="true"
-            title="Toggle ambient music"
-            data-tip="Ambient music on/off&#10;Change track/volume in the cyberdeck lobby."
-            data-tip-pos="below"
-          >
-            <span class="music-hud-icon" aria-hidden="true">♪</span>
-            <span class="music-hud-label">BGM</span>
-          </button>
+          <div class="hud-top-actions">
+            <button
+              type="button"
+              id="btn-abort"
+              class="abort-hud-btn"
+              title="Abort breach"
+              data-tip="Drop this breach and return to the lobby.&#10;XP, wounds, and CRED from this run are not kept."
+              data-tip-pos="below"
+            >
+              <span class="abort-hud-label">ABORT</span>
+            </button>
+            <button
+              type="button"
+              id="btn-music-toggle"
+              class="music-hud-btn"
+              aria-pressed="true"
+              title="Toggle ambient music"
+              data-tip="Ambient music on/off&#10;Change track/volume in the cyberdeck lobby."
+              data-tip-pos="below"
+            >
+              <span class="music-hud-icon" aria-hidden="true">♪</span>
+              <span class="music-hud-label">BGM</span>
+            </button>
+          </div>
         </header>
 
         <div id="hit-chance" class="hit-chance hidden">

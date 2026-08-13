@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createMission } from './map';
 import {
   advanceTutorStep,
   getTutorStep,
   TUTORIAL_STEPS,
   tutorStepIndex,
+  hasCompletedTutorial,
+  markTutorialDone,
 } from './tutorial';
 import type { GameEvent } from '../sim/types';
 
@@ -58,5 +60,27 @@ describe('tutorial mission', () => {
     expect(m.units.get('p_mark')!.def.name).toBe('SEEK');
     expect(m.units.get('p_sup')!.def.name).toBe('PATCHD');
     expect(m.units.get('p_heavy')!.def.name).toBe('FLOOD');
+  });
+});
+
+describe('tutorial done flag', () => {
+  const mem = new Map<string, string>();
+  const ls = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      mem.set(k, v);
+    },
+    removeItem: (k: string) => {
+      mem.delete(k);
+    },
+  };
+
+  afterEach(() => mem.clear());
+
+  it('starts unset and persists after mark', () => {
+    (globalThis as { localStorage?: typeof ls }).localStorage = ls;
+    expect(hasCompletedTutorial()).toBe(false);
+    markTutorialDone();
+    expect(hasCompletedTutorial()).toBe(true);
   });
 });

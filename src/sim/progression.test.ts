@@ -275,6 +275,22 @@ describe('map layouts', () => {
     expect(state.dataPortTiles.length).toBeGreaterThan(0);
   });
 
+  it('trace is a west-port bus with three pods', () => {
+    const state = createMission(1, 'normal', { mapId: 'trace' });
+    expect(state.mapId).toBe('trace');
+    expect(state.pods.size).toBe(3);
+    expect(state.portLinkRequired).toBe(2);
+    const portX = Math.min(...state.dataPortTiles.map((t) => t.x));
+    const spawnX = state.units.get('p_breach')!.pos.x;
+    expect(portX).toBeLessThan(4);
+    expect(spawnX).toBeGreaterThan(16);
+    for (const u of state.units.values()) {
+      const t = state.tiles[u.pos.y]![u.pos.x]!;
+      expect(t.walkable).toBe(true);
+      expect(t.blocked).toBe(false);
+    }
+  });
+
   it('kernel stealth branch is lighter than loud', () => {
     const stealth = createMission(1, 'normal', {
       mapId: 'kernel',

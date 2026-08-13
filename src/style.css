@@ -1848,18 +1848,25 @@ body,
   text-align: center;
 }
 
-@media (max-width: 520px) {
-  .credits-banner-inner {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: left;
+@media (max-width: 640px) {
+  .credits-kicker,
+  .credits-blurb,
+  .credits-actions,
+  .credits-qr-caption {
+    display: none;
   }
-  .credits-qr-wrap {
-    align-self: center;
+  .credits-banner-inner {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.45rem 0.65rem;
+    gap: 0.55rem;
   }
   .credits-qr {
-    width: 132px;
-    height: 132px;
+    width: 40px;
+    height: 40px;
+  }
+  .credits-made {
+    font-size: 0.78rem;
   }
 }
 
@@ -2188,6 +2195,22 @@ body,
   border-color: var(--danger);
   background: rgba(255, 61, 90, 0.1);
   box-shadow: 0 0 16px rgba(255, 61, 90, 0.14);
+}
+
+.map-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .map-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.map-btn[data-map='trace'].active {
+  border-color: #c48a4a;
+  background: rgba(196, 138, 74, 0.12);
+  box-shadow: 0 0 16px rgba(196, 138, 74, 0.14);
 }
 
 .mode-row {
@@ -2623,6 +2646,35 @@ body,
   flex: 1;
   min-width: 0;
   text-align: center;
+}
+
+.hud-top-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.abort-hud-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgba(255, 61, 90, 0.4);
+  background: rgba(20, 6, 10, 0.82);
+  color: var(--danger);
+  font-family: var(--font-display);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.abort-hud-btn:hover {
+  border-color: rgba(255, 61, 90, 0.75);
+  background: rgba(255, 61, 90, 0.12);
 }
 
 .music-hud-btn {
