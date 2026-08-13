@@ -4258,3 +4258,130 @@ body.mode-target #game-canvas {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ── Tutorial mode ─────────────────────────────────────── */
+.tutorial-panel {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.tutorial-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.tutorial-panel-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  border: 1px solid rgba(255, 193, 74, 0.35);
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+}
+
+.tutorial-coach {
+  position: absolute;
+  left: 1rem;
+  bottom: 5.5rem;
+  z-index: 40;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0.75rem 0.9rem 0.85rem;
+  background: rgba(4, 16, 12, 0.94);
+  border: 1px solid rgba(0, 232, 160, 0.45);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(0, 232, 160, 0.08);
+  pointer-events: auto;
+}
+
+.tutorial-coach.coach-minimized .coach-title,
+.tutorial-coach.coach-minimized .coach-body,
+.tutorial-coach.coach-minimized .coach-actions {
+  display: none;
+}
+
+.tutorial-coach.coach-minimized {
+  width: auto;
+  padding: 0.4rem 0.55rem;
+}
+
+.coach-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.coach-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+}
+
+.coach-step {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-right: auto;
+}
+
+.coach-dismiss {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+
+.coach-dismiss:hover {
+  color: var(--text);
+}
+
+.coach-title {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  margin-bottom: 0.3rem;
+}
+
+.coach-body {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text);
+  opacity: 0.92;
+}
+
+.coach-actions {
+  margin-top: 0.55rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.coach-next {
+  font-size: 0.68rem !important;
+  padding: 0.25rem 0.55rem !important;
+}
+
+@media (max-width: 640px) {
+  .tutorial-coach {
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    bottom: 6.25rem;
+  }
+
+  .mode-row {
+    grid-template-columns: 1fr;
+  }
+}

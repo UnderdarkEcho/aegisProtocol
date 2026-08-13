@@ -27,7 +27,7 @@ import { makeEnemy, makeSoldier, scaleEnemyForDifficulty } from './classes';
 
 // ── Map catalog ───────────────────────────────────────────
 
-export type MapId = 'training' | 'vesper' | 'kernel';
+export type MapId = 'training' | 'vesper' | 'kernel' | 'tutorial';
 
 export interface MapInfo {
   id: MapId;
@@ -47,6 +47,14 @@ export const MAPS: Record<MapId, MapInfo> = {
     blurb: 'Open test die — short port run. link.sys + hold 1 hostile cycle, or wipe.',
     complexity: 1,
   },
+  tutorial: {
+    id: 'tutorial',
+    name: 'TUTORIAL DIE',
+    short: 'TUTORIAL',
+    blurb:
+      'Guided first breach — one weak pod, short path to the data port. Practice only (no XP / records).',
+    complexity: 1,
+  },
   vesper: {
     id: 'vesper',
     name: 'NODE VESPER',
@@ -63,6 +71,7 @@ export const MAPS: Record<MapId, MapInfo> = {
   },
 };
 
+/** Skirmish picker order (tutorial map is play-mode only). */
 export const MAP_ORDER: MapId[] = ['training', 'vesper', 'kernel'];
 
 export function getMapInfo(id: MapId): MapInfo {
@@ -73,6 +82,7 @@ export function getMapInfo(id: MapId): MapInfo {
 export function defaultTurnLimit(mapId: MapId): number {
   switch (mapId) {
     case 'training':
+    case 'tutorial':
       return 10;
     case 'kernel':
       return 16;
@@ -242,8 +252,16 @@ function placeEnemies(
   }
 }
 
-/** Simple open pad — short breach, one main pod. */
-function buildTraining(difficulty: DifficultyId): LayoutResult {
+/** Shared open-pad geometry used by training + tutorial. */
+function buildOpenPadBase(): {
+  width: number;
+  height: number;
+  tiles: Tile[][];
+  props: Map<string, CoverProp>;
+  extractTiles: Vec2[];
+  dataPortTiles: Vec2[];
+  squadSpawns: Vec2[];
+} {
   const W = 20;
   const H = 16;
   const tiles = createEmptyTiles(W, H);
@@ -267,6 +285,44 @@ function buildTraining(difficulty: DifficultyId): LayoutResult {
   add(prop('t8', 6, 11, 1, 'sandbag'));
   rebuildCoverEdges(tiles, props);
 
+  const extractTiles: Vec2[] = [
+    { x: 8, y: 13 },
+    { x: 9, y: 13 },
+    { x: 10, y: 14 },
+    { x: 11, y: 14 },
+  ];
+  const dataPortTiles: Vec2[] = [
+    { x: 9, y: 1 },
+    { x: 10, y: 1 },
+    { x: 9, y: 2 },
+    { x: 10, y: 2 },
+  ];
+  for (let y = 1; y <= 3; y++) {
+    openDoor(tiles, 9, y);
+    openDoor(tiles, 10, y);
+  }
+  clearPortTiles(tiles, props, dataPortTiles);
+  rebuildCoverEdges(tiles, props);
+
+  return {
+    width: W,
+    height: H,
+    tiles,
+    props,
+    extractTiles,
+    dataPortTiles,
+    squadSpawns: [
+      { x: 8, y: 13 },
+      { x: 9, y: 14 },
+      { x: 10, y: 13 },
+      { x: 11, y: 14 },
+    ],
+  };
+}
+
+/** Simple open pad — short breach, two pods (campaign OP-01 / skirmish). */
+function buildTraining(difficulty: DifficultyId): LayoutResult {
+  const base = buildOpenPadBase();
   const units = new Map<string, UnitState>();
   const pods = new Map<string, Pod>();
 
@@ -293,41 +349,35 @@ function buildTraining(difficulty: DifficultyId): LayoutResult {
     },
   ]);
 
-  const extractTiles: Vec2[] = [
-    { x: 8, y: 13 },
-    { x: 9, y: 13 },
-    { x: 10, y: 14 },
-    { x: 11, y: 14 },
-  ];
-  const dataPortTiles: Vec2[] = [
-    { x: 9, y: 1 },
-    { x: 10, y: 1 },
-    { x: 9, y: 2 },
-    { x: 10, y: 2 },
-  ];
-  for (let y = 1; y <= 3; y++) {
-    openDoor(tiles, 9, y);
-    openDoor(tiles, 10, y);
-  }
-  clearPortTiles(tiles, props, dataPortTiles);
-  rebuildCoverEdges(tiles, props);
-
   return {
-    width: W,
-    height: H,
-    tiles,
-    props,
+    ...base,
     units,
     pods,
-    extractTiles,
-    dataPortTiles,
-    squadSpawns: [
-      { x: 8, y: 13 },
-      { x: 9, y: 14 },
-      { x: 10, y: 13 },
-      { x: 11, y: 14 },
-    ],
     pickupCount: 3,
+  };
+}
+
+/** Guided first breach — one weak pod, same pad geometry. */
+function buildTutorial(difficulty: DifficultyId): LayoutResult {
+  const base = buildOpenPadBase();
+  const units = new Map<string, UnitState>();
+  const pods = new Map<string, Pod>();
+
+  placeEnemies(units, pods, difficulty, [
+    {
+      id: 'podA',
+      members: [
+        { kind: 'pmc', id: 'e_pmc1', name: 'WARDEN-01', pos: { x: 9, y: 6 }, podId: 'podA' },
+        { kind: 'drone', id: 'e_drone1', name: 'SCRAPE-A', pos: { x: 11, y: 5 }, podId: 'podA' },
+      ],
+    },
+  ]);
+
+  return {
+    ...base,
+    units,
+    pods,
+    pickupCount: 2,
   };
 }
 
@@ -688,6 +738,8 @@ function buildLayout(
   switch (mapId) {
     case 'training':
       return buildTraining(difficulty);
+    case 'tutorial':
+      return buildTutorial(difficulty);
     case 'kernel':
       return buildKernel(difficulty, kernelBranch);
     case 'vesper':
@@ -709,7 +761,7 @@ export interface MissionOptions {
   /** Map layout. Default: vesper (preserves test coordinates). */
   mapId?: MapId;
   /** How the mission was launched. Default: skirmish. */
-  playMode?: 'campaign' | 'skirmish';
+  playMode?: 'campaign' | 'skirmish' | 'tutorial';
   /** Campaign op id when playMode is campaign. */
   campaignOpId?: string;
   /** Objective type. Default: standard. */
@@ -801,8 +853,8 @@ export function createMission(
     dataPortSecured: false,
     portLinkUnitId: null,
     portLinkProgress: 0,
-    // Training: 1 hold (teach the mechanic). Ops maps: 2 holds (no zerg rush).
-    portLinkRequired: mapId === 'training' ? 1 : 2,
+    // Training/tutorial: 1 hold (teach the mechanic). Ops maps: 2 holds (no zerg rush).
+    portLinkRequired: mapId === 'training' || mapId === 'tutorial' ? 1 : 2,
     mapId,
     playMode: options.playMode ?? 'skirmish',
     campaignOpId: options.campaignOpId,

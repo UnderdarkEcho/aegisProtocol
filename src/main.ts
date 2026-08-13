@@ -128,17 +128,22 @@ function handlers() {
     onDebugSync: () => {
       renderer.sync(game);
       hud.refresh();
-      // Don't bank kill XP mid-run if already tainted; still allow visual unit state
-      if (game.debugTainted) return;
+      // Don't bank kill XP mid-run if practice (debug/tutorial); still allow visual unit state
+      if (game.debugTainted || game.state.playMode === 'tutorial') return;
       persistRosterFromGame();
     },
     onPersistRoster: () => {
-      if (game.debugTainted) return;
+      if (game.debugTainted || game.state.playMode === 'tutorial') return;
       persistRosterFromGame();
     },
     onMissionEndPersist: (practice?: boolean) => {
-      // XP + wound flags for next deploy (practice rolls XP back)
-      persistRosterFromGame({ applyWounds: true, practice: Boolean(practice) });
+      // XP + wound flags for next deploy (practice rolls XP back).
+      // Tutorial never banks wounds — keep teaching frictionless.
+      const tutorial = hud.getPlayMode() === 'tutorial';
+      persistRosterFromGame({
+        applyWounds: !tutorial,
+        practice: Boolean(practice) || tutorial,
+      });
     },
     onMissionResult: (
       victory: boolean,
@@ -265,8 +270,10 @@ function deploy() {
   music.unlock();
   busy = false;
   aimedId = null;
-  const difficulty = hud.getDifficulty();
   const playMode = hud.getPlayMode();
+  // Tutorial always uses easy ICE; other modes keep lobby difficulty
+  const difficulty: DifficultyId =
+    playMode === 'tutorial' ? 'easy' : hud.getDifficulty();
   const mapId = hud.resolveDeployMapId();
   const op = playMode === 'campaign' ? getCurrentOp(campaign) : null;
 
@@ -286,7 +293,9 @@ function deploy() {
   const missionType =
     playMode === 'campaign'
       ? (op?.missionType ?? 'standard')
-      : hud.getMissionType();
+      : playMode === 'tutorial'
+        ? 'standard'
+        : hud.getMissionType();
   const kernelBranch =
     playMode === 'campaign' && mapId === 'kernel' ? campaign.vesperPath : null;
 
@@ -309,6 +318,7 @@ function deploy() {
     game.markDebugUsed();
   }
   game.startMission();
+  if (playMode === 'tutorial') hud.startTutorialCoach();
   hud.showHud();
   hud.setMode({ type: 'move' });
   renderer.sync(game);
@@ -320,7 +330,8 @@ function deploy() {
       .reduce((s, u) => s + u.level, 0) / 4,
   );
   const mapName = getMapInfo(mapId).short;
-  const prefix = op ? `${op.codename} · ` : '';
+  const prefix =
+    playMode === 'tutorial' ? 'TUTORIAL · ' : op ? `${op.codename} · ` : '';
   const limit =
     game.state.missionType === 'deadline' && game.state.turnLimit != null
       ? ` · ${game.state.turnLimit} CYC LIMIT`
@@ -331,13 +342,20 @@ function deploy() {
       : kernelBranch === 'loud'
         ? ' · FULL ALERT'
         : '';
-  const practiceTag = game.debugTainted ? ' · DBG PRACTICE' : '';
+  const practiceTag =
+    playMode === 'tutorial'
+      ? ' · PRACTICE'
+      : game.debugTainted
+        ? ' · DBG PRACTICE'
+        : '';
   hud.showToast(
     `${prefix}${mapName} · ${getDifficulty(difficulty).label} · TEAM L${avgLvl}${limit}${branchTag}${practiceTag}`,
-    game.debugTainted,
+    playMode === 'tutorial' || game.debugTainted,
     2800,
   );
-  if (game.debugTainted) {
+  if (playMode === 'tutorial') {
+    hud.showToast('TUTORIAL · NO XP / RECORDS · FOLLOW COACH TIPS', false, 3200);
+  } else if (game.debugTainted) {
     hud.showToast('DBG PRACTICE · NO XP / RECORDS THIS RUN', true, 3200);
   }
   const first = game.getSelected();
@@ -351,12 +369,13 @@ function deploy() {
 function restart() {
   busy = false;
   aimedId = null;
-  // Leaving a debug-tainted breach mid-run: roll XP back to jack-in
-  if (game.debugTainted) {
+  // Leaving a debug-tainted or tutorial breach mid-run: roll XP back to jack-in
+  if (game.debugTainted || game.state.playMode === 'tutorial') {
     restoreRosterXpFromSnapshot();
   }
-  const difficulty = hud.getDifficulty();
   const playMode = hud.getPlayMode();
+  const difficulty: DifficultyId =
+    playMode === 'tutorial' ? 'easy' : hud.getDifficulty();
   roster = loadRoster();
   campaign = loadCampaign();
   loadout = loadLoadout();
@@ -364,13 +383,19 @@ function restart() {
   hud.setLoadout(loadout);
 
   const mapId =
-    playMode === 'campaign' ? getCurrentOp(campaign).mapId : hud.getMapId();
+    playMode === 'campaign'
+      ? getCurrentOp(campaign).mapId
+      : playMode === 'tutorial'
+        ? 'tutorial'
+        : hud.getMapId();
   const op = playMode === 'campaign' ? getCurrentOp(campaign) : null;
 
   const missionType =
     playMode === 'campaign'
       ? (op?.missionType ?? 'standard')
-      : hud.getMissionType();
+      : playMode === 'tutorial'
+        ? 'standard'
+        : hud.getMissionType();
   const kernelBranch =
     playMode === 'campaign' && mapId === 'kernel' ? campaign.vesperPath : null;
 
@@ -388,9 +413,9 @@ function restart() {
       }),
     ),
   );
-  hud.setDifficulty(difficulty);
+  if (playMode !== 'tutorial') hud.setDifficulty(difficulty);
   hud.setPlayMode(playMode);
-  hud.setMapId(mapId);
+  if (playMode === 'skirmish') hud.setMapId(mapId);
   hud.setMissionType(missionType);
   hud.setCampaign(campaign);
   hud.setLoadout(loadout);

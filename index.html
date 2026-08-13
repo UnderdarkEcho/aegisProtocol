@@ -203,6 +203,21 @@
                     <span class="diff-name">SKIRMISH</span>
                     <span class="diff-desc">Free map pick</span>
                   </button>
+                  <button type="button" class="diff-btn mode-btn" data-mode="tutorial" aria-pressed="false">
+                    <span class="mode-key">[C]</span>
+                    <span class="diff-name">TUTORIAL</span>
+                    <span class="diff-desc">Learn the breach</span>
+                  </button>
+                </div>
+                <div id="tutorial-panel" class="tutorial-panel holo-panel hidden">
+                  <div class="tutorial-panel-head">
+                    <span class="lock-label">GUIDED FIRST BREACH</span>
+                    <span class="tutorial-panel-tag">PRACTICE · NO XP</span>
+                  </div>
+                  <p id="tutorial-panel-blurb" class="difficulty-blurb">
+                    Easy die · one weak pod · coach tips during the run. Move, shoot, end cycle, seize the north data port
+                    (link.sys + 1 hold). Completing it does not bank XP, CRED, or RECORDS.
+                  </p>
                 </div>
                 <div id="campaign-track-row" class="difficulty-row mode-row campaign-track-row" role="radiogroup" aria-label="Campaign arc">
                   <button type="button" class="diff-btn track-btn active" data-track="standard" aria-pressed="true">
@@ -653,6 +668,22 @@
         </aside>
 
         <div id="squad-bar" class="squad-bar"></div>
+
+        <!-- Tutorial coach — only during playMode tutorial -->
+        <aside id="tutorial-coach" class="tutorial-coach hidden" aria-live="polite">
+          <div class="coach-head">
+            <span class="coach-tag">TUTORIAL</span>
+            <span id="coach-step" class="coach-step">1/6</span>
+            <button type="button" id="coach-dismiss" class="coach-dismiss" title="Hide coach" aria-label="Hide coach">×</button>
+          </div>
+          <div id="coach-title" class="coach-title">SELECT A PROBE</div>
+          <p id="coach-body" class="coach-body">
+            Click a squad chip or a unit on the die. Green tiles show MOVE range.
+          </p>
+          <div class="coach-actions">
+            <button type="button" id="coach-next" class="btn btn-ghost coach-next">NEXT TIP</button>
+          </div>
+        </aside>
 
         <!-- Debug cheats — only when start-menu DEBUG MODE is on -->
         <div id="debug-bar" class="debug-bar hidden" role="toolbar" aria-label="Debug cheats" hidden>

@@ -6,7 +6,7 @@
 import type { MapId } from '../content/map';
 import type { DifficultyId, MissionType } from './types';
 
-export type PlayMode = 'campaign' | 'skirmish';
+export type PlayMode = 'campaign' | 'skirmish' | 'tutorial';
 export type CampaignTrack = 'standard' | 'extended';
 
 /** How a Vesper deadline op was cleared — shapes later Kernel ops. */

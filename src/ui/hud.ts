@@ -10,6 +10,11 @@ import { CREDITS } from '../content/credits';
 import { shareScoreToX } from '../content/share';
 import { getMapInfo, MAPS, type MapId } from '../content/map';
 import {
+  advanceTutorStep,
+  getTutorStep,
+  TUTORIAL_STEPS,
+} from '../content/tutorial';
+import {
   campaignProgressLabel,
   defaultCampaign,
   getCampaignOps,
@@ -145,6 +150,10 @@ export class HUD {
   private onCampaignTrackChange: ((track: CampaignTrack) => void) | null = null;
   private missionXpAwarded = false;
   private toastTimer = 0;
+  /** Coach step id while playMode === tutorial */
+  private tutorStepId = TUTORIAL_STEPS[0]!.id;
+  private coachMinimized = false;
+  private coachWired = false;
 
   private els = {
     briefing: document.getElementById('briefing')!,
@@ -228,6 +237,13 @@ export class HUD {
     squadBar: document.getElementById('squad-bar')!,
     debugBar: document.getElementById('debug-bar')!,
     debugModeToggle: document.getElementById('debug-mode-toggle') as HTMLInputElement | null,
+    tutorialPanel: document.getElementById('tutorial-panel'),
+    tutorialCoach: document.getElementById('tutorial-coach'),
+    coachStep: document.getElementById('coach-step'),
+    coachTitle: document.getElementById('coach-title'),
+    coachBody: document.getElementById('coach-body'),
+    coachNext: document.getElementById('coach-next') as HTMLButtonElement | null,
+    coachDismiss: document.getElementById('coach-dismiss') as HTMLButtonElement | null,
   };
 
   /** Optional projector for floating combat text (screen px). */
@@ -306,6 +322,7 @@ export class HUD {
     this.wireDebugModeToggle();
     this.wireDebugBar();
     this.wireMusicControls();
+    this.wireCoach();
     this.wireRecords();
     this.wireSquadDossier();
     this.wireCredits();
@@ -819,7 +836,13 @@ export class HUD {
     if (this.playMode === 'campaign') {
       return getCurrentOp(this.campaign).mapId;
     }
+    if (this.playMode === 'tutorial') return 'tutorial';
     return this.mapId;
+  }
+
+  /** Tutorial and debug practice runs skip XP / CRED / RECORDS. */
+  isPracticeRun(): boolean {
+    return this.playMode === 'tutorial' || Boolean(this.game?.debugTainted);
   }
 
   setMapId(id: MapId) {
@@ -915,13 +938,18 @@ export class HUD {
     if (!el) return;
     const mapId = this.resolveDeployMapId();
     const map = getMapInfo(mapId).short;
-    const diff = getDifficulty(this.difficulty).label;
+    const diff =
+      this.playMode === 'tutorial'
+        ? getDifficulty('easy').label
+        : getDifficulty(this.difficulty).label;
     const mode =
       this.playMode === 'campaign'
         ? this.campaign.track === 'extended'
           ? 'CAMPAIGN EXT'
           : 'CAMPAIGN'
-        : 'SKIRMISH';
+        : this.playMode === 'tutorial'
+          ? 'TUTORIAL'
+          : 'SKIRMISH';
     let extra = '';
     if (this.playMode === 'skirmish' && this.missionType === 'deadline') {
       extra = ' · DEADLINE';
@@ -930,6 +958,8 @@ export class HUD {
       const n = getOpCount(this.campaign.track);
       extra = ` · ${op.codename} · ${this.campaign.opIndex + 1}/${n}`;
       if (op.missionType === 'deadline') extra += ' · DEADLINE';
+    } else if (this.playMode === 'tutorial') {
+      extra = ' · PRACTICE';
     }
     el.textContent = `${mode} · ${map} · ${diff}${extra}`;
   }
@@ -941,24 +971,99 @@ export class HUD {
       const t = (ev.target as HTMLElement).closest('.mode-btn') as HTMLButtonElement | null;
       if (!t?.dataset.mode) return;
       const mode = t.dataset.mode as PlayMode;
-      if (mode !== 'campaign' && mode !== 'skirmish') return;
+      if (mode !== 'campaign' && mode !== 'skirmish' && mode !== 'tutorial') return;
       this.setPlayMode(mode);
     });
     this.setPlayMode(this.playMode);
   }
 
+  private wireCoach() {
+    if (this.coachWired) return;
+    this.coachWired = true;
+    this.els.coachNext?.addEventListener('click', () => {
+      const i = TUTORIAL_STEPS.findIndex((s) => s.id === this.tutorStepId);
+      const next = TUTORIAL_STEPS[Math.min(i + 1, TUTORIAL_STEPS.length - 1)];
+      if (next) {
+        this.tutorStepId = next.id;
+        this.coachMinimized = false;
+        this.renderCoach();
+        sfx.ui();
+      }
+    });
+    this.els.coachDismiss?.addEventListener('click', () => {
+      this.coachMinimized = !this.coachMinimized;
+      this.renderCoach();
+      sfx.ui();
+    });
+  }
+
+  /** Reset coach and show it (tutorial deploy). */
+  startTutorialCoach() {
+    // Jack-in pre-selects a probe — skip pure "select" gate when already armed
+    this.tutorStepId = this.game?.getSelected() ? 'move' : TUTORIAL_STEPS[0]!.id;
+    this.coachMinimized = false;
+    this.renderCoach();
+  }
+
+  private hideCoach() {
+    this.els.tutorialCoach?.classList.add('hidden');
+  }
+
+  private renderCoach() {
+    const el = this.els.tutorialCoach;
+    if (!el) return;
+    if (this.playMode !== 'tutorial' || this.els.hud.classList.contains('hidden')) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    el.classList.toggle('coach-minimized', this.coachMinimized);
+    const step = getTutorStep(this.tutorStepId);
+    if (this.els.coachStep) this.els.coachStep.textContent = step.indexLabel;
+    if (this.els.coachTitle) this.els.coachTitle.textContent = step.title;
+    if (this.els.coachBody) this.els.coachBody.textContent = step.body;
+    if (this.els.coachDismiss) {
+      this.els.coachDismiss.title = this.coachMinimized ? 'Show coach' : 'Hide coach';
+      this.els.coachDismiss.setAttribute(
+        'aria-label',
+        this.coachMinimized ? 'Show coach' : 'Hide coach',
+      );
+    }
+    const last = this.tutorStepId === TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1]!.id;
+    if (this.els.coachNext) {
+      this.els.coachNext.disabled = last;
+      this.els.coachNext.textContent = last ? 'DONE' : 'NEXT TIP';
+    }
+  }
+
+  private advanceCoachFromEvent(e: GameEvent) {
+    if (this.playMode !== 'tutorial') return;
+    const next = advanceTutorStep(this.tutorStepId, e);
+    if (next !== this.tutorStepId) {
+      this.tutorStepId = next;
+      this.coachMinimized = false;
+      this.renderCoach();
+    }
+  }
+
   private refreshCampaignUI() {
     const campaign = this.playMode === 'campaign';
+    const tutorial = this.playMode === 'tutorial';
     this.els.campaignPanel?.classList.toggle('hidden', !campaign);
     document.getElementById('campaign-track-row')?.classList.toggle('hidden', !campaign);
-    this.els.mapRow.classList.toggle('hidden', campaign);
+    this.els.tutorialPanel?.classList.toggle('hidden', !tutorial);
+    // Map picker only in skirmish; campaign locks map; tutorial uses fixed die
+    this.els.mapRow.classList.toggle('hidden', campaign || tutorial);
     this.els.campaignMapLock?.classList.toggle('hidden', !campaign);
-    // Campaign ops lock objective type; skirmish can pick
-    this.els.missionTypeSection?.classList.toggle('hidden', campaign);
+    // Campaign ops lock objective type; tutorial is fixed standard
+    this.els.missionTypeSection?.classList.toggle('hidden', campaign || tutorial);
     if (this.els.mapSectionTitle) {
-      this.els.mapSectionTitle.textContent = campaign ? 'CURRENT OP NODE' : 'TARGET NODE';
+      this.els.mapSectionTitle.textContent = campaign
+        ? 'CURRENT OP NODE'
+        : tutorial
+          ? 'TUTORIAL NODE'
+          : 'TARGET NODE';
     }
-
     // Track chips
     const track = this.campaign.track ?? 'standard';
     document.querySelectorAll<HTMLButtonElement>('.track-btn').forEach((btn) => {
@@ -972,10 +1077,19 @@ export class HUD {
     this.els.btnResetCampaign?.classList.remove('hidden');
     this.refreshCampaignResetLabels();
 
+    const deploySub = this.els.btnDeploy.querySelector('.btn-jack-sub');
+
     if (!campaign) {
       this.els.campaignCompleteNote?.classList.add('hidden');
-      const info = getMapInfo(this.mapId);
-      this.els.mapBlurb.textContent = info.blurb;
+      if (tutorial) {
+        this.els.mapBlurb.textContent = getMapInfo('tutorial').blurb;
+      } else {
+        const info = getMapInfo(this.mapId);
+        this.els.mapBlurb.textContent = info.blurb;
+      }
+      if (deploySub) {
+        deploySub.textContent = tutorial ? 'GUIDED BREACH →' : 'JACK IN →';
+      }
       this.refreshDeploySummary();
       return;
     }
@@ -1014,12 +1128,11 @@ export class HUD {
     this.renderCampaignStepper(n);
 
     // Deploy sublabel
-    const sub = this.els.btnDeploy.querySelector('.btn-jack-sub');
-    if (sub) {
+    if (deploySub) {
       if (this.campaign.completed) {
-        sub.textContent = 'SKIRMISH OR NEW CAMPAIGN';
+        deploySub.textContent = 'SKIRMISH OR NEW CAMPAIGN';
       } else {
-        sub.textContent = `${op.codename} →`;
+        deploySub.textContent = `${op.codename} →`;
       }
     }
     this.refreshDeploySummary();
@@ -1408,6 +1521,7 @@ export class HUD {
     this.els.campaignVictory?.classList.add('hidden');
     this.els.resultStandard?.classList.remove('hidden');
     this.els.debriefPanel?.classList.add('hidden');
+    this.hideCoach();
     this.refreshLobbyWounds();
     this.refreshLoadoutShop();
     this.refreshCampaignUI();
@@ -1421,6 +1535,8 @@ export class HUD {
     this.els.result.classList.add('hidden');
     this.els.result.classList.remove('campaign-finale');
     this.applyDebugBarVisibility();
+    if (this.playMode === 'tutorial') this.renderCoach();
+    else this.hideCoach();
   }
 
   showResult(
@@ -1430,6 +1546,7 @@ export class HUD {
   ) {
     this.els.result.classList.remove('hidden');
     this.els.hud.classList.add('hidden');
+    this.hideCoach();
     this.els.btnEnd.classList.remove('deadline-urgent');
 
     const finale = Boolean(opts?.campaignFinale && victory);
@@ -1532,7 +1649,9 @@ export class HUD {
       if (n.practice) {
         if (this.els.debriefScoreNote) {
           this.els.debriefScoreNote.textContent =
-            'DBG PRACTICE — no XP, CRED, or RECORDS from this breach.';
+            this.playMode === 'tutorial'
+              ? 'TUTORIAL — no XP, CRED, or RECORDS. Switch to CAMPAIGN when ready.'
+              : 'DBG PRACTICE — no XP, CRED, or RECORDS from this breach.';
           this.els.debriefScoreNote.classList.remove('hidden', 'pb');
         }
         if (this.els.debriefScore) this.els.debriefScore.textContent = '—';
@@ -2044,6 +2163,7 @@ export class HUD {
   }
 
   private onEvent(e: GameEvent) {
+    this.advanceCoachFromEvent(e);
     if (e.type === 'toast') {
       const text = String(e.payload.text);
       const danger = Boolean(e.payload.danger);
@@ -2135,8 +2255,8 @@ export class HUD {
       const victory = e.payload.result === 'victory';
       const alive = Number(e.payload.squadAlive ?? 0);
       const reason = String(e.payload.reason ?? '');
-      // Debug mode / cheats → practice run: no XP bank, no CRED, no RECORDS
-      const practice = Boolean(this.game?.debugTainted);
+      // Tutorial or debug/cheats → practice: no XP bank, no CRED, no RECORDS
+      const practice = this.isPracticeRun();
 
       // Mission bonus XP once, then persist roster + wound flags
       if (!this.missionXpAwarded && this.game) {
@@ -2224,7 +2344,11 @@ export class HUD {
         };
       }
 
-      const xpLines = practice ? 'DBG PRACTICE · NO XP BANKED' : this.missionXpSummary();
+      const xpLines = practice
+        ? this.playMode === 'tutorial'
+          ? 'TUTORIAL · NO XP BANKED'
+          : 'DBG PRACTICE · NO XP BANKED'
+        : this.missionXpSummary();
       let base = victory
         ? reason === 'data_port'
           ? `Data port linked on the far side of the die. ${alive} probe${alive === 1 ? '' : 's'} still live — payload streamed to the outer system.`
@@ -2235,7 +2359,9 @@ export class HUD {
 
       if (practice) {
         base +=
-          '\n\nDBG PRACTICE RUN — debug mode or cheats were used. No XP, CRED, or RECORDS from this breach.';
+          this.playMode === 'tutorial'
+            ? '\n\nTUTORIAL COMPLETE — practice only. No XP, CRED, or RECORDS. Switch to CAMPAIGN for the story arc.'
+            : '\n\nDBG PRACTICE RUN — debug mode or cheats were used. No XP, CRED, or RECORDS from this breach.';
       }
 
       if (this.playMode === 'campaign' && !campaignFinale) {

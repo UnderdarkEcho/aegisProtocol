@@ -240,8 +240,8 @@ export interface MissionState {
   difficulty: DifficultyId;
   /** Selected map layout (training / vesper / kernel) */
   mapId: string;
-  /** campaign | skirmish — tags how this mission was launched */
-  playMode: 'campaign' | 'skirmish';
+  /** campaign | skirmish | tutorial — tags how this mission was launched */
+  playMode: 'campaign' | 'skirmish' | 'tutorial';
   /** Campaign op id when playMode is campaign */
   campaignOpId?: string;
   /** True once the data port channel finishes (after link.sys + hold) */
