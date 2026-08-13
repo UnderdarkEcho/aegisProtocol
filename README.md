@@ -16,12 +16,12 @@ Full VR decks are still a rumor. People still type. ICE still feels experimental
 
 You are the operator behind **Aegis Protocol** — an uplink kit that drops a four-process team onto contested hardware:
 
-| Callsign | Class | Role |
+| Process | Class | Role |
 |---|---|---|
-| **REYES** | Intruder | Close-range scatter, breach tools, first through the pins |
-| **CHEN** | Pointer | Long-read injects, high accuracy, overwatch and sandbox |
-| **OKAFOR** | Sysop | Noise obfuscation, patch restores, keeps the team linked |
-| **VOLKOV** | Flooder | Area pressure, throttle, heavy kit |
+| **WEDGE** | Intruder | Close-range scatter, breach tools, first through the pins |
+| **SEEK** | Pointer | Long-read injects, high accuracy, overwatch and sandbox |
+| **PATCHD** | Sysop | Noise obfuscation, patch restores, keeps the team linked |
+| **FLOOD** | Flooder | Area pressure, throttle, heavy kit |
 
 Hostile processes wake in pods. Wardens. Scrapers. Kernel guards. They stay dark until your vision touches them — then the cluster comes online and the die fights back.
 

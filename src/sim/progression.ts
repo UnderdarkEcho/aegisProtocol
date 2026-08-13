@@ -14,10 +14,10 @@ export const SQUAD_TEMPLATE: ReadonlyArray<{
   name: string;
   classId: Extract<UnitClass, 'breacher' | 'marksman' | 'support' | 'heavy'>;
 }> = [
-  { id: 'p_breach', name: 'REYES', classId: 'breacher' },
-  { id: 'p_mark', name: 'CHEN', classId: 'marksman' },
-  { id: 'p_sup', name: 'OKAFOR', classId: 'support' },
-  { id: 'p_heavy', name: 'VOLKOV', classId: 'heavy' },
+  { id: 'p_breach', name: 'WEDGE', classId: 'breacher' },
+  { id: 'p_mark', name: 'SEEK', classId: 'marksman' },
+  { id: 'p_sup', name: 'PATCHD', classId: 'support' },
+  { id: 'p_heavy', name: 'FLOOD', classId: 'heavy' },
 ];
 
 export type PlayerClassId = (typeof SQUAD_TEMPLATE)[number]['classId'];

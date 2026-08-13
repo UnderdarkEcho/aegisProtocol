@@ -69,8 +69,8 @@ describe('ability unlocks', () => {
   });
 
   it('buildSoldierAtLevel scales stats', () => {
-    const l1 = buildSoldierAtLevel('heavy', 'p_heavy', 'VOLKOV', 1);
-    const l4 = buildSoldierAtLevel('heavy', 'p_heavy', 'VOLKOV', 4);
+    const l1 = buildSoldierAtLevel('heavy', 'p_heavy', 'FLOOD', 1);
+    const l4 = buildSoldierAtLevel('heavy', 'p_heavy', 'FLOOD', 4);
     expect(l4.maxHp).toBeGreaterThan(l1.maxHp);
     expect(l4.aim).toBeGreaterThanOrEqual(l1.aim);
     expect(l4.armor).toBeGreaterThanOrEqual(l1.armor); // milestone armor at 4
@@ -144,7 +144,7 @@ describe('mission with roster', () => {
 
 describe('wounds and debrief', () => {
   it('applyWoundDebuffs lowers INT, ACC, mobility', () => {
-    const base = buildSoldierAtLevel('breacher', 'p_breach', 'REYES', 1);
+    const base = buildSoldierAtLevel('breacher', 'p_breach', 'WEDGE', 1);
     const w = applyWoundDebuffs(base);
     expect(w.maxHp).toBe(base.maxHp - 1);
     expect(w.aim).toBe(base.aim - 12);
@@ -168,11 +168,11 @@ describe('wounds and debrief', () => {
 
   it('createMission applies wound debuffs from roster', () => {
     const roster = defaultRoster();
-    roster.operatives[0]!.wounded = true; // REYES
+    roster.operatives[0]!.wounded = true; // WEDGE
     const state = createMission(1, 'normal', { roster, gateAbilities: true });
     const u = state.units.get('p_breach')!;
     expect(u.wounded).toBe(true);
-    const healthy = buildSoldierAtLevel('breacher', 'p_breach', 'REYES', 1);
+    const healthy = buildSoldierAtLevel('breacher', 'p_breach', 'WEDGE', 1);
     expect(u.def.maxHp).toBe(healthy.maxHp - 1);
     expect(u.def.aim).toBe(healthy.aim - 12);
   });
@@ -338,10 +338,10 @@ describe('death does not clear XP', () => {
         roster: {
           version: 1,
           operatives: [
-            { id: 'p_breach', name: 'REYES', classId: 'breacher', xp: 150, wounded: false },
-            { id: 'p_mark', name: 'CHEN', classId: 'marksman', xp: 80, wounded: false },
-            { id: 'p_sup', name: 'OKAFOR', classId: 'support', xp: 0, wounded: false },
-            { id: 'p_heavy', name: 'VOLKOV', classId: 'heavy', xp: 40, wounded: false },
+            { id: 'p_breach', name: 'WEDGE', classId: 'breacher', xp: 150, wounded: false },
+            { id: 'p_mark', name: 'SEEK', classId: 'marksman', xp: 80, wounded: false },
+            { id: 'p_sup', name: 'PATCHD', classId: 'support', xp: 0, wounded: false },
+            { id: 'p_heavy', name: 'FLOOD', classId: 'heavy', xp: 40, wounded: false },
           ],
         },
         gateAbilities: true,
@@ -355,10 +355,10 @@ describe('death does not clear XP', () => {
     const prev = {
       version: 1 as const,
       operatives: [
-        { id: 'p_breach', name: 'REYES', classId: 'breacher' as const, xp: 150, wounded: false },
-        { id: 'p_mark', name: 'CHEN', classId: 'marksman' as const, xp: 80, wounded: false },
-        { id: 'p_sup', name: 'OKAFOR', classId: 'support' as const, xp: 0, wounded: false },
-        { id: 'p_heavy', name: 'VOLKOV', classId: 'heavy' as const, xp: 40, wounded: false },
+        { id: 'p_breach', name: 'WEDGE', classId: 'breacher' as const, xp: 150, wounded: false },
+        { id: 'p_mark', name: 'SEEK', classId: 'marksman' as const, xp: 80, wounded: false },
+        { id: 'p_sup', name: 'PATCHD', classId: 'support' as const, xp: 0, wounded: false },
+        { id: 'p_heavy', name: 'FLOOD', classId: 'heavy' as const, xp: 40, wounded: false },
       ],
     };
     const next = rosterFromUnits(game.state.units.values(), prev);
@@ -394,10 +394,10 @@ describe('death does not clear XP', () => {
     const roster = {
       version: 1 as const,
       operatives: [
-        { id: 'p_breach', name: 'REYES', classId: 'breacher' as const, xp: 200, wounded: false },
-        { id: 'p_mark', name: 'CHEN', classId: 'marksman' as const, xp: 0, wounded: false },
-        { id: 'p_sup', name: 'OKAFOR', classId: 'support' as const, xp: 0, wounded: false },
-        { id: 'p_heavy', name: 'VOLKOV', classId: 'heavy' as const, xp: 0, wounded: false },
+        { id: 'p_breach', name: 'WEDGE', classId: 'breacher' as const, xp: 200, wounded: false },
+        { id: 'p_mark', name: 'SEEK', classId: 'marksman' as const, xp: 0, wounded: false },
+        { id: 'p_sup', name: 'PATCHD', classId: 'support' as const, xp: 0, wounded: false },
+        { id: 'p_heavy', name: 'FLOOD', classId: 'heavy' as const, xp: 0, wounded: false },
       ],
     };
     const state = createMission(9, 'normal', { roster, gateAbilities: true });

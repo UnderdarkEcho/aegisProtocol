@@ -61,7 +61,8 @@ function sanitizeRoster(r: SquadRoster): SquadRoster {
       if (existing && existing.classId === t.classId) {
         return {
           ...existing,
-          name: existing.name || t.name,
+          // Always canonical process name from template (migrate old human callsigns)
+          name: t.name,
           wounded: Boolean(existing.wounded),
         };
       }

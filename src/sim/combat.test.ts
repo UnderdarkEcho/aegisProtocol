@@ -506,10 +506,10 @@ describe('pickups', () => {
         roster: {
           version: 1,
           operatives: [
-            { id: 'p_breach', name: 'REYES', classId: 'breacher', xp: 0, wounded: false },
-            { id: 'p_mark', name: 'CHEN', classId: 'marksman', xp: 0, wounded: false },
-            { id: 'p_sup', name: 'OKAFOR', classId: 'support', xp: 200, wounded: false },
-            { id: 'p_heavy', name: 'VOLKOV', classId: 'heavy', xp: 0, wounded: false },
+            { id: 'p_breach', name: 'WEDGE', classId: 'breacher', xp: 0, wounded: false },
+            { id: 'p_mark', name: 'SEEK', classId: 'marksman', xp: 0, wounded: false },
+            { id: 'p_sup', name: 'PATCHD', classId: 'support', xp: 200, wounded: false },
+            { id: 'p_heavy', name: 'FLOOD', classId: 'heavy', xp: 0, wounded: false },
           ],
         },
         gateAbilities: true,

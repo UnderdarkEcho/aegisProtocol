@@ -28,7 +28,7 @@ describe('tutorial coach', () => {
       'port',
     );
     expect(
-      advanceTutorStep('port', ev('toast', { text: 'REYES · link.sys ARMED — HOLD 1' })),
+      advanceTutorStep('port', ev('toast', { text: 'WEDGE · link.sys ARMED — HOLD 1' })),
     ).toBe('done');
     // never go backward
     expect(advanceTutorStep('port', ev('unitSelected', {}))).toBe('port');

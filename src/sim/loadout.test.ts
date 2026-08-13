@@ -28,7 +28,7 @@ describe('loadout shop', () => {
   });
 
   it('applyLoadoutToDef boosts damage and armor', () => {
-    const base = makeSoldier('breacher', 'p_breach', 'REYES');
+    const base = makeSoldier('breacher', 'p_breach', 'WEDGE');
     const loadout = { ...defaultLoadout(), inject: 2, armor: 1 };
     const d = applyLoadoutToDef(base, loadout);
     expect(d.weapon.damageMin).toBe(base.weapon.damageMin + 2);
@@ -37,7 +37,7 @@ describe('loadout shop', () => {
   });
 
   it('applyLoadoutToUnit adds max CYC', () => {
-    const def = makeSoldier('support', 'p_sup', 'OKAFOR');
+    const def = makeSoldier('support', 'p_sup', 'PATCHD');
     const u = {
       def,
       id: def.id,

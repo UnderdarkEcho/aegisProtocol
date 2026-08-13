@@ -11,6 +11,7 @@ import {
   buildSoldierAtLevel,
   levelFromXp,
   sanitizeXp,
+  SQUAD_TEMPLATE,
   type SquadRoster,
 } from '../sim/progression';
 import type {
@@ -791,24 +792,14 @@ export function createMission(
     (options.roster?.operatives ?? []).map((o) => [o.id, o]),
   );
 
-  const squadSpecs: Array<{
-    classId: 'breacher' | 'marksman' | 'support' | 'heavy';
-    id: string;
-    name: string;
-  }> = [
-    { classId: 'breacher', id: 'p_breach', name: 'REYES' },
-    { classId: 'marksman', id: 'p_mark', name: 'CHEN' },
-    { classId: 'support', id: 'p_sup', name: 'OKAFOR' },
-    { classId: 'heavy', id: 'p_heavy', name: 'VOLKOV' },
-  ];
-
-  for (let i = 0; i < squadSpecs.length; i++) {
-    const s = squadSpecs[i]!;
+  for (let i = 0; i < SQUAD_TEMPLATE.length; i++) {
+    const s = SQUAD_TEMPLATE[i]!;
     const pos = layout.squadSpawns[i] ?? layout.extractTiles[0]!;
     const row = rosterById.get(s.id);
     const xp = sanitizeXp(row?.xp ?? 0);
     const level = levelFromXp(xp);
-    const name = row?.name ?? s.name;
+    // Always use process callsign from template (not stale roster strings)
+    const name = s.name;
     const wounded = Boolean(row?.wounded);
     let def = gate
       ? buildSoldierAtLevel(s.classId, s.id, name, level, { gateAbilities: true })
