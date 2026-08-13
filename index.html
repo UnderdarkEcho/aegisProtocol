@@ -345,13 +345,18 @@
                     </button>
                   </div>
                   <div class="records-list-head">
-                    <span>#</span><span>SCORE</span><span>RUN</span>
+                    <span>#</span><span>SCORE</span><span>RUN</span><span></span>
                   </div>
                   <ol id="records-list" class="records-list"></ol>
                   <p id="records-empty" class="difficulty-blurb records-empty">No breaches logged. Jack in and clear a node.</p>
                   <div class="records-foot">
                     <span class="records-note">Local only · this deck</span>
-                    <button type="button" id="btn-clear-records" class="btn btn-ghost btn-danger-ghost records-clear">CLEAR</button>
+                    <div class="records-foot-actions">
+                      <button type="button" id="btn-share-top" class="btn btn-ghost records-share-top" disabled title="Share your #1 run on X">
+                        SHARE #1 ON X
+                      </button>
+                      <button type="button" id="btn-clear-records" class="btn btn-ghost btn-danger-ghost records-clear">CLEAR</button>
+                    </div>
                   </div>
                 </div>
               </section>

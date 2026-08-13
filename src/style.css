@@ -990,14 +990,58 @@ body,
 
 .records-row {
   display: grid;
-  grid-template-columns: 1.4rem 4.2rem 1fr;
+  grid-template-columns: 1.4rem 4.2rem 1fr 2.1rem;
   gap: 0.4rem;
-  align-items: baseline;
+  align-items: center;
   font-family: var(--font-mono);
   font-size: 0.62rem;
   padding: 0.3rem 0.35rem;
   border: 1px solid rgba(0, 255, 200, 0.1);
   background: rgba(0, 0, 0, 0.25);
+}
+
+.rec-share {
+  justify-self: end;
+  width: 1.85rem;
+  height: 1.55rem;
+  padding: 0;
+  border: 1px solid rgba(61, 224, 255, 0.35);
+  background: rgba(61, 224, 255, 0.08);
+  color: var(--cyan);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.rec-share:hover {
+  border-color: rgba(61, 224, 255, 0.7);
+  background: rgba(61, 224, 255, 0.16);
+  color: #e8fff8;
+}
+
+.records-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.records-share-top {
+  font-size: 0.52rem !important;
+  padding: 0.35rem 0.55rem !important;
+  letter-spacing: 0.08em !important;
+  border-color: rgba(61, 224, 255, 0.4) !important;
+  color: var(--cyan) !important;
+}
+
+.records-share-top:hover:not(:disabled) {
+  background: rgba(61, 224, 255, 0.1) !important;
+}
+
+.records-share-top:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .rec-rank {
@@ -1022,7 +1066,7 @@ body,
 
 .records-list-head {
   display: grid;
-  grid-template-columns: 1.4rem 4.2rem 1fr;
+  grid-template-columns: 1.4rem 4.2rem 1fr 2.1rem;
   gap: 0.4rem;
   font-family: var(--font-mono);
   font-size: 0.5rem;

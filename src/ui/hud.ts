@@ -7,6 +7,7 @@ import {
 import { sfx } from '../audio/sfx';
 import { ABILITIES, CLASS_LABEL } from '../content/classes';
 import { CREDITS } from '../content/credits';
+import { shareScoreToX } from '../content/share';
 import { getMapInfo, MAPS, type MapId } from '../content/map';
 import {
   campaignProgressLabel,
@@ -1083,6 +1084,28 @@ export class HUD {
       sfx.ui();
       this.showToast('RECORDS WIPED', false, 1600);
     });
+    document.getElementById('btn-share-top')?.addEventListener('click', () => {
+      const board = loadLeaderboard();
+      const list = this.recordsBoard === 'campaign' ? board.campaign : board.skirmish;
+      const top = list[0];
+      if (!top) return;
+      shareScoreToX(top, 1);
+      sfx.ui();
+      this.showToast('OPENING X COMPOSE…', false, 1400);
+    });
+    document.getElementById('records-list')?.addEventListener('click', (ev) => {
+      const btn = (ev.target as HTMLElement).closest('.rec-share') as HTMLButtonElement | null;
+      if (!btn) return;
+      const id = btn.dataset.scoreId;
+      if (!id) return;
+      const board = loadLeaderboard();
+      const list = this.recordsBoard === 'campaign' ? board.campaign : board.skirmish;
+      const idx = list.findIndex((e) => e.id === id);
+      if (idx < 0) return;
+      shareScoreToX(list[idx]!, idx + 1);
+      sfx.ui();
+      this.showToast('OPENING X COMPOSE…', false, 1400);
+    });
     this.refreshRecordsPanel();
   }
 
@@ -1097,6 +1120,7 @@ export class HUD {
     const ol = document.getElementById('records-list');
     const empty = document.getElementById('records-empty');
     const head = document.querySelector('.records-list-head');
+    const shareTop = document.getElementById('btn-share-top') as HTMLButtonElement | null;
     if (ol) {
       ol.innerHTML = '';
       list.forEach((e, i) => {
@@ -1106,12 +1130,20 @@ export class HUD {
         li.innerHTML =
           `<span class="rec-rank">${medal}</span>` +
           `<span class="rec-score">${e.score.toLocaleString()}</span>` +
-          `<span class="rec-label" title="${e.label}">${e.label}</span>`;
+          `<span class="rec-label" title="${escapeAttr(e.label)}">${escapeHtml(e.label)}</span>` +
+          `<button type="button" class="rec-share" data-score-id="${escapeAttr(e.id)}" title="Share this run on X" aria-label="Share score on X">𝕏</button>`;
         ol.appendChild(li);
       });
     }
     empty?.classList.toggle('hidden', list.length > 0);
     head?.classList.toggle('hidden', list.length === 0);
+    if (shareTop) {
+      shareTop.disabled = list.length === 0;
+      shareTop.title =
+        list.length > 0
+          ? `Share your #1 ${this.recordsBoard} run on X`
+          : 'Clear a node first to share';
+    }
   }
 
   /** Footer + OPS button labels: NEW when stack clear, else RESET. */
@@ -2498,6 +2530,18 @@ function bestCoverOnTile(g: Game, x: number, y: number): CoverLevel {
     if (edge.level > best) best = edge.level;
   }
   return best;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s: string): string {
+  return escapeHtml(s).replace(/'/g, '&#39;');
 }
 
 function setTip(el: HTMLElement, text: string, pos?: 'below' | 'right' | 'start') {
