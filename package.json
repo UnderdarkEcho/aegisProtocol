@@ -36,8 +36,8 @@
     "jsdom": "^30.0.0",
     "playwright": "^1.62.0",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1",
-    "vitest": "^4.1.10"
+    "vite": "^8.1.6",
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "three": "^0.185.1"
